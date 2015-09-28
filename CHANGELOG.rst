@@ -2,7 +2,10 @@
 Changelog for package tile_map
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
+0.0.2 (2015-09-27)
+------------------
+
+0.0.1 (2015-09-27)
 -----------
 * Adds missing qt-opengl dependency to tile_map.
 * Renames all marti_common packages that were renamed.
