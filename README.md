@@ -19,12 +19,14 @@ multires_image (64-bit) | [![Build Status](http://jenkins.ros.org/buildStatus/ic
 tile_map (32-bit) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-tile-map_binarydeb_saucy_i386)](http://jenkins.ros.org/job/ros-indigo-tile-map_binarydeb_saucy_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-tile-map_binarydeb_trusty_i386)](http://jenkins.ros.org/job/ros-indigo-tile-map_binarydeb_trusty_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-tile-map_binarydeb_trusty_i386)](http://jenkins.ros.org/job/ros-jade-tile-map_binarydeb_trusty_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-tile-map_binarydeb_utopic_i386)](http://jenkins.ros.org/job/ros-jade-tile-map_binarydeb_utopic_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-tile-map_binarydeb_vivid_i386)](http://jenkins.ros.org/job/ros-jade-tile-map_binarydeb_vivid_i386/) |
 tile_map (64-bit) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-tile-map_binarydeb_saucy_amd64)](http://jenkins.ros.org/job/ros-indigo-tile-map_binarydeb_saucy_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-tile-map_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-indigo-tile-map_binarydeb_trusty_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-tile-map_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-jade-tile-map_binarydeb_trusty_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-tile-map_binarydeb_utopic_amd64)](http://jenkins.ros.org/job/ros-jade-tile-map_binarydeb_utopic_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-tile-map_binarydeb_vivid_amd64)](http://jenkins.ros.org/job/ros-jade-tile-map_binarydeb_vivid_amd64/) |
 
-Installation (ROS Indigo)
+Installation (ROS Indigo, Jade)
 ------------
 
-In ROS Indigo, you can install mapviz using apt-get from the ROS apt repository. This is the recommended installation method for ROS Indigo. ROS Jade builds are coming soon.
+*At this time, Mapviz is only available from OSRF's prerelease apt repository (ros-shadow-fixed). Until the repository is synced over to the main ROS repository, the recommended installation method is to compile Mapviz from source code.*
 
-    sudo apt-get install ros-indigo-mapviz
+In ROS Indigo, you can install mapviz using apt-get from the ROS apt repository. This is the recommended installation method for ROS Indigo and Jade.
+
+    sudo apt-get install ros-$ROS_DISTRO-mapviz
 
 
 Building From Source (ROS Indigo, Jade)
@@ -34,31 +36,58 @@ These directions assume you have already set up a catkin workspace. See [this tu
 
 ### Checking out the source code (wstool)
 
-If you're using wstool, add this repository to your wstool workspace:
+If you're using wstool, add these repositories to your wstool workspace:
 
-    wstool set mapviz --git https://github.com/swri-robotics/mapviz.git -v indigo-devel
-
-In ROS Jade, you must also build these dependencies from source, so you'll have to add them as well:
-
+    wstool set mapviz --git https://github.com/swri-robotics/mapviz.git -v $ROS_DISTRO-devel
+    wstool set marti_common --git https://github.com/swri-robotics/marti_common.git -v $ROS_DISTRO-devel
     wstool set marti_messages --git https://github.com/swri-robotics/marti_messages.git -v indigo-devel
-    wstool set marti_common --git https://github.com/swri-robotics/marti_common.git -v indigo-devel
 
 ### Checking out the source code (git)
 
 If you're not using wstool, you can check out the repositories with git:
 
-    git clone https://github.com/swri-robotics/mapviz.git --branch indigo-devel
-
-In ROS Jade, you must also build these dependencies from source, so you'll have to add them as well:
-
+    git clone https://github.com/swri-robotics/mapviz.git --branch $ROS_DISTRO-devel
+    git clone https://github.com/swri-robotics/marti_common.git --branch $ROS_DISTRO-devel
     git clone https://github.com/swri-robotics/marti_messages.git --branch indigo-devel
-    git clone https://github.com/swri-robotics/marti_common.git --branch indigo-devel
 
 ### Installing dependencies and building
 
 Install all of the dependencies using rosdep by running the following command from the root of your catkin workspace:
 
     rosdep install --from-paths src --ignore-src
+
+Build the workspace with catkin_make:
+
+    catkin_make
+
+Building From Source (ROS Groovy, Hydro)
+------------
+
+These directions assume you have already set up a catkin workspace. See [this tutorial](http://wiki.ros.org/catkin/Tutorials/create_a_workspace) on the ROS Wiki for help setting up a catkin workspace.
+
+### Checking out the source code (wstool)
+
+If you're using wstool, add this repository to your wstool workspace:
+
+    wstool set mapviz --git https://github.com/swri-robotics/mapviz.git -v $ROS_DISTRO-devel
+
+### Checking out the source code (git)
+
+If you're not using wstool, you can check out the repositories with git:
+
+    git clone https://github.com/swri-robotics/mapviz.git --branch $ROS_DISTRO-devel
+
+### Installing dependencies and building
+
+Install all of the dependencies manually using these two commands:
+
+    sudo apt-get install ros-$ROS_DISTRO-tf ros-$ROS_DISTRO-common-msgs ros-$ROS_DISTRO-plugin-lib \
+      ros-$ROS_DISTRO-gps-umd ros-$ROS_DISTRO-nodelet ros-$ROS_DISTRO-cv-bridge \
+      ros-$ROS_DISTRO-image-geometry ros-$ROS_DISTRO-angles ros-$ROS_DISTRO-camera-calibration-parsers \
+      ros-$ROS_DISTRO-image-transport
+
+    sudo apt-get install yaml-cpp libboost-random-dev libblas-dev liblapack-dev libproj-dev \
+      libglew-dev freeglut3-dev libxmu-dev libgeos++-dev qt4-dev-tools
 
 Build the workspace with catkin_make:
 
@@ -82,14 +111,14 @@ Overlays a [sensor_msgs::DisparityImage](http://docs.ros.org/api/stereo_msgs/htm
 * Height: Display height
 * Units: (pixels | percent of window)
 
-### GPS
+### NavSat (GPS)
 
-Projects [gps_common::GPSFix](http://docs.ros.org/hydro/api/gps_common/html/msg/GPSFix.html) message data into the scene.
+Projects [sensor_msgs::NavSatFix](http://http://docs.ros.org/jade/api/sensor_msgs/html/msg/NavSatFix.html) message data into the scene.
 
 **Parameters**
  * Topic: The GPS topic
  * Color: The color of the GPS data
- * Draw Style: (lines | points | arrows)
+ * Draw Style: (lines | points)
  * Position Tolerance: Distance threshold for adding new GPS points to visualization
  * Buffer Size: Size of circular buffer of GPS points
 
