@@ -2,6 +2,11 @@
 Changelog for package multires_image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.1 (2015-11-17)
+------------------
+* Use extension from geo file
+* Contributors: Vincent Rousseau
+
 0.1.0 (2015-09-29)
 ------------------
 
