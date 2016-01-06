@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   stereo_msgs
   visualization_msgs
+  gps_common
   marti_visualization_msgs
   mapviz
   multires_image
@@ -38,6 +39,7 @@ catkin_package(
     sensor_msgs
     stereo_msgs
     visualization_msgs
+    gps_common
     marti_visualization_msgs
     mapviz
     multires_image
@@ -76,6 +78,7 @@ file (GLOB SRC_FILES
     src/textured_marker_plugin.cpp
     src/tf_frame_plugin.cpp
     src/robot_image_plugin.cpp
+    src/gps_plugin.cpp
     src/navsat_plugin.cpp)
     
 QT4_WRAP_UI(SRC_FILES ${UI_FILES})
@@ -92,6 +95,7 @@ QT4_WRAP_CPP(SRC_FILES
     include/mapviz_plugins/textured_marker_plugin.h
     include/mapviz_plugins/tf_frame_plugin.h
     include/mapviz_plugins/robot_image_plugin.h
+    include/mapviz_plugins/gps_plugin.h
     include/mapviz_plugins/navsat_plugin.h)
 
 add_library(${PROJECT_NAME} ${SRC_FILES})
