@@ -32,6 +32,7 @@
 // C++ standard libraries
 #include <cmath>
 #include <cstdlib>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 
@@ -259,6 +260,7 @@ void Mapviz::UpdateFrames()
 {
   std::vector<std::string> frames;
   tf_->getFrameStrings(frames);
+  std::sort(frames.begin(), frames.end());
 
   if (ui_.fixedframe->count() >= 0 && 
       static_cast<size_t>(ui_.fixedframe->count()) == frames.size())
@@ -810,11 +812,13 @@ void Mapviz::SelectNewDisplay()
   ui.setupUi(&dialog);
 
   std::vector<std::string> plugins = loader_->getDeclaredClasses();
-  for (unsigned int i = 0; i < plugins.size(); i++)
+  std::map<std::string, std::string> plugin_types;
+  for (size_t i = 0; i < plugins.size(); i++)
   {
     QString type(plugins[i].c_str());
     type = type.split('/').last();
     ui.displaylist->addItem(type);
+    plugin_types[type.toStdString()] = plugins[i];
   }
   ui.displaylist->setCurrentRow(0);
 
@@ -822,8 +826,8 @@ void Mapviz::SelectNewDisplay()
 
   if (dialog.result() == QDialog::Accepted)
   {
-    int row =ui.displaylist->currentRow();
-    std::string type = plugins[row].c_str();
+    std::string type_name = ui.displaylist->selectedItems().first()->text().toStdString();
+    std::string type = plugin_types[type_name];
     std::string name = "new display";
     try
     {
@@ -1084,7 +1088,7 @@ void Mapviz::ToggleRecord(bool on)
       boost::replace_all(posix_time, ".", "_");    
       std::string filename = capture_directory_ + "/mapviz_" + posix_time + ".avi";
       boost::replace_all(filename, "~", getenv("HOME"));
-      ROS_INFO("Writing video to: %s", filename.c_str());
+
     
       video_writer_ = boost::make_shared<cv::VideoWriter>(
         filename, 
@@ -1099,8 +1103,8 @@ void Mapviz::ToggleRecord(bool on)
         return;
       }
       
-      std::string status = std::string("Recording video mapviz_") + posix_time + ".avi";
-      ui_.statusbar->showMessage(QString::fromStdString(status));
+      ROS_INFO("Writing video to: %s", filename.c_str());
+      ui_.statusbar->showMessage("Recording video to " + QString::fromStdString(filename));
       
       canvas_->updateGL();
     }
@@ -1167,10 +1171,9 @@ void Mapviz::Screenshot()
     boost::replace_all(posix_time, ".", "_");    
     std::string filename = capture_directory_ + "/mapviz_" + posix_time + ".png";
     boost::replace_all(filename, "~", getenv("HOME"));
-    ROS_INFO("Writing screenshot to: %s", filename.c_str());
     
-    std::string status = std::string("Saved image mapviz_") + posix_time + ".png";
-    ui_.statusbar->showMessage(QString::fromStdString(status));
+    ROS_INFO("Writing screenshot to: %s", filename.c_str());    
+    ui_.statusbar->showMessage("Saved image to " + QString::fromStdString(filename));
     
     cv::imwrite(filename, screenshot);
   }
