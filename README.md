@@ -8,19 +8,23 @@ Mapviz is a [ROS](http://www.ros.org/) based visualization tool with a plug-in s
 Build Status
 ------------
 
-Package | Indigo (Saucy 64-bit) | Indigo (Trusty 64-bit) | Jade (Trusty) | Jade (Utopic) | Jade (Vivid)
+Package | Indigo (Saucy) | Indigo (Trusty) | Jade (Trusty) | Jade (Utopic) | Jade (Vivid)
 ------- | -------------- | --------------- | ------------- | ------------- | ------------
-mapviz | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-mapviz_binarydeb_saucy_amd64)](http://jenkins.ros.org/job/ros-indigo-mapviz_binarydeb_saucy_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-mapviz_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-indigo-mapviz_binarydeb_trusty_amd64/) | Coming Soon | Coming Soon | Coming Soon
-mapviz_plugins | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-mapviz-plugins_binarydeb_saucy_amd64)](http://jenkins.ros.org/job/ros-indigo-mapviz-plugins_binarydeb_saucy_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-mapviz-plugins_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-indigo-mapviz-plugins_binarydeb_trusty_amd64/) | Coming soon | Coming soon | Coming soon
-multires_image | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-multires-image_binarydeb_saucy_amd64)](http://jenkins.ros.org/job/ros-indigo-multires-image_binarydeb_saucy_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-multires-image_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-indigo-multires-image_binarydeb_trusty_amd64/) | Coming soon | Coming soon | Coming soon
-tilemap | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-tile-map_binarydeb_saucy_amd64)](http://jenkins.ros.org/job/ros-indigo-tile-map_binarydeb_saucy_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-tile-map_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-indigo-tile-map_binarydeb_trusty_amd64/) | Coming soon | Coming soon | Coming soon
+mapviz (32-bit) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-mapviz_binarydeb_saucy_i386)](http://jenkins.ros.org/job/ros-indigo-mapviz_binarydeb_saucy_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-mapviz_binarydeb_trusty_i386)](http://jenkins.ros.org/job/ros-indigo-mapviz_binarydeb_trusty_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-mapviz_binarydeb_trusty_i386)](http://jenkins.ros.org/job/ros-jade-mapviz_binarydeb_trusty_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-mapviz_binarydeb_utopic_i386)](http://jenkins.ros.org/job/ros-jade-mapviz_binarydeb_utopic_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-mapviz_binarydeb_vivid_i386)](http://jenkins.ros.org/job/ros-jade-mapviz_binarydeb_vivid_i386/) |
+mapviz (64-bit) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-mapviz_binarydeb_saucy_amd64)](http://jenkins.ros.org/job/ros-indigo-mapviz_binarydeb_saucy_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-mapviz_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-indigo-mapviz_binarydeb_trusty_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-mapviz_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-jade-mapviz_binarydeb_trusty_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-mapviz_binarydeb_utopic_amd64)](http://jenkins.ros.org/job/ros-jade-mapviz_binarydeb_utopic_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-mapviz_binarydeb_vivid_amd64)](http://jenkins.ros.org/job/ros-jade-mapviz_binarydeb_vivid_amd64/) |
+mapviz_plugins (32-bit) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-mapviz-plugins_binarydeb_saucy_i386)](http://jenkins.ros.org/job/ros-indigo-mapviz-plugins_binarydeb_saucy_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-mapviz-plugins_binarydeb_trusty_i386)](http://jenkins.ros.org/job/ros-indigo-mapviz-plugins_binarydeb_trusty_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-mapviz-plugins_binarydeb_trusty_i386)](http://jenkins.ros.org/job/ros-jade-mapviz-plugins_binarydeb_trusty_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-mapviz-plugins_binarydeb_utopic_i386)](http://jenkins.ros.org/job/ros-jade-mapviz-plugins_binarydeb_utopic_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-mapviz-plugins_binarydeb_vivid_i386)](http://jenkins.ros.org/job/ros-jade-mapviz-plugins_binarydeb_vivid_i386/) |
+mapviz_plugins (64-bit) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-mapviz-plugins_binarydeb_saucy_amd64)](http://jenkins.ros.org/job/ros-indigo-mapviz-plugins_binarydeb_saucy_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-mapviz-plugins_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-indigo-mapviz-plugins_binarydeb_trusty_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-mapviz-plugins_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-jade-mapviz-plugins_binarydeb_trusty_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-mapviz-plugins_binarydeb_utopic_amd64)](http://jenkins.ros.org/job/ros-jade-mapviz-plugins_binarydeb_utopic_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-mapviz-plugins_binarydeb_vivid_amd64)](http://jenkins.ros.org/job/ros-jade-mapviz-plugins_binarydeb_vivid_amd64/) |
+multires_image (32-bit) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-multires-image_binarydeb_saucy_i386)](http://jenkins.ros.org/job/ros-indigo-multires-image_binarydeb_saucy_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-multires-image_binarydeb_trusty_i386)](http://jenkins.ros.org/job/ros-indigo-multires-image_binarydeb_trusty_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-multires-image_binarydeb_trusty_i386)](http://jenkins.ros.org/job/ros-jade-multires-image_binarydeb_trusty_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-multires-image_binarydeb_utopic_i386)](http://jenkins.ros.org/job/ros-jade-multires-image_binarydeb_utopic_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-multires-image_binarydeb_vivid_i386)](http://jenkins.ros.org/job/ros-jade-multires-image_binarydeb_vivid_i386/) |
+multires_image (64-bit) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-multires-image_binarydeb_saucy_amd64)](http://jenkins.ros.org/job/ros-indigo-multires-image_binarydeb_saucy_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-multires-image_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-indigo-multires-image_binarydeb_trusty_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-multires-image_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-jade-multires-image_binarydeb_trusty_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-multires-image_binarydeb_utopic_amd64)](http://jenkins.ros.org/job/ros-jade-multires-image_binarydeb_utopic_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-multires-image_binarydeb_vivid_amd64)](http://jenkins.ros.org/job/ros-jade-multires-image_binarydeb_vivid_amd64/) |
+tile_map (32-bit) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-tile-map_binarydeb_saucy_i386)](http://jenkins.ros.org/job/ros-indigo-tile-map_binarydeb_saucy_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-tile-map_binarydeb_trusty_i386)](http://jenkins.ros.org/job/ros-indigo-tile-map_binarydeb_trusty_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-tile-map_binarydeb_trusty_i386)](http://jenkins.ros.org/job/ros-jade-tile-map_binarydeb_trusty_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-tile-map_binarydeb_utopic_i386)](http://jenkins.ros.org/job/ros-jade-tile-map_binarydeb_utopic_i386/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-tile-map_binarydeb_vivid_i386)](http://jenkins.ros.org/job/ros-jade-tile-map_binarydeb_vivid_i386/) |
+tile_map (64-bit) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-tile-map_binarydeb_saucy_amd64)](http://jenkins.ros.org/job/ros-indigo-tile-map_binarydeb_saucy_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-indigo-tile-map_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-indigo-tile-map_binarydeb_trusty_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-tile-map_binarydeb_trusty_amd64)](http://jenkins.ros.org/job/ros-jade-tile-map_binarydeb_trusty_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-tile-map_binarydeb_utopic_amd64)](http://jenkins.ros.org/job/ros-jade-tile-map_binarydeb_utopic_amd64/) | [![Build Status](http://jenkins.ros.org/buildStatus/icon?job=ros-jade-tile-map_binarydeb_vivid_amd64)](http://jenkins.ros.org/job/ros-jade-tile-map_binarydeb_vivid_amd64/) |
 
-Installation (ROS Indigo)
+Installation (ROS Indigo, Jade)
 ------------
 
-In ROS Indigo, you can install mapviz using apt-get from the ROS apt repository. This is the recommended installation method for ROS Indigo. ROS Jade builds are coming soon.
+In ROS Indigo, you can install mapviz using apt-get from the ROS apt repository. This is the recommended installation method for ROS Indigo and Jade.
 
-    sudo apt-get install ros-indigo-mapviz
+    sudo apt-get install ros-$ROS_DISTRO-mapviz ros-$ROS_DISTRO-mapviz-plugins
 
 
 Building From Source (ROS Indigo, Jade)
@@ -30,31 +34,58 @@ These directions assume you have already set up a catkin workspace. See [this tu
 
 ### Checking out the source code (wstool)
 
-If you're using wstool, add this repository to your wstool workspace:
+If you're using wstool, add these repositories to your wstool workspace:
 
-    wstool set mapviz --git https://github.com/swri-robotics/mapviz.git -v indigo-devel
-
-In ROS Jade, you must also build these dependencies from source, so you'll have to add them as well:
-
+    wstool set mapviz --git https://github.com/swri-robotics/mapviz.git -v $ROS_DISTRO-devel
+    wstool set marti_common --git https://github.com/swri-robotics/marti_common.git -v $ROS_DISTRO-devel
     wstool set marti_messages --git https://github.com/swri-robotics/marti_messages.git -v indigo-devel
-    wstool set marti_common --git https://github.com/swri-robotics/marti_common.git -v indigo-devel
 
 ### Checking out the source code (git)
 
 If you're not using wstool, you can check out the repositories with git:
 
-    git clone https://github.com/swri-robotics/mapviz.git --branch indigo-devel
-
-In ROS Jade, you must also build these dependencies from source, so you'll have to add them as well:
-
+    git clone https://github.com/swri-robotics/mapviz.git --branch $ROS_DISTRO-devel
+    git clone https://github.com/swri-robotics/marti_common.git --branch $ROS_DISTRO-devel
     git clone https://github.com/swri-robotics/marti_messages.git --branch indigo-devel
-    git clone https://github.com/swri-robotics/marti_common.git --branch indigo-devel
 
 ### Installing dependencies and building
 
 Install all of the dependencies using rosdep by running the following command from the root of your catkin workspace:
 
     rosdep install --from-paths src --ignore-src
+
+Build the workspace with catkin_make:
+
+    catkin_make
+
+Building From Source (ROS Groovy, Hydro)
+------------
+
+These directions assume you have already set up a catkin workspace. See [this tutorial](http://wiki.ros.org/catkin/Tutorials/create_a_workspace) on the ROS Wiki for help setting up a catkin workspace.
+
+### Checking out the source code (wstool)
+
+If you're using wstool, add this repository to your wstool workspace:
+
+    wstool set mapviz --git https://github.com/swri-robotics/mapviz.git -v $ROS_DISTRO-devel
+
+### Checking out the source code (git)
+
+If you're not using wstool, you can check out the repositories with git:
+
+    git clone https://github.com/swri-robotics/mapviz.git --branch $ROS_DISTRO-devel
+
+### Installing dependencies and building
+
+Install all of the dependencies manually using these two commands:
+
+    sudo apt-get install ros-$ROS_DISTRO-tf ros-$ROS_DISTRO-common-msgs ros-$ROS_DISTRO-plugin-lib \
+      ros-$ROS_DISTRO-gps-umd ros-$ROS_DISTRO-nodelet ros-$ROS_DISTRO-cv-bridge \
+      ros-$ROS_DISTRO-image-geometry ros-$ROS_DISTRO-angles ros-$ROS_DISTRO-camera-calibration-parsers \
+      ros-$ROS_DISTRO-image-transport
+
+    sudo apt-get install yaml-cpp libboost-random-dev libblas-dev liblapack-dev libproj-dev \
+      libglew-dev freeglut3-dev libxmu-dev libgeos++-dev qt4-dev-tools
 
 Build the workspace with catkin_make:
 
