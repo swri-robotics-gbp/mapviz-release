@@ -35,7 +35,6 @@
 #include <vector>
 
 // QT libraries
-#include <QDialog>
 #include <QGLWidget>
 #include <QPalette>
 #include <QImage>
@@ -43,6 +42,8 @@
 
 // ROS libraries
 #include <ros/master.h>
+
+#include <mapviz/select_frame_dialog.h>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.h>
@@ -104,24 +105,10 @@ namespace mapviz_plugins
 
   void RobotImagePlugin::SelectFrame()
   {
-    QDialog dialog;
-    Ui::topicselect ui;
-    ui.setupUi(&dialog);
-
-    std::vector<std::string> frames;
-    tf_->getFrameStrings(frames);
-
-    for (unsigned int i = 0; i < frames.size(); i++)
+    std::string frame = mapviz::SelectFrameDialog::selectFrame(tf_);
+    if (!frame.empty())
     {
-      ui.displaylist->addItem(frames[i].c_str());
-    }
-    ui.displaylist->setCurrentRow(0);
-
-    dialog.exec();
-
-    if (dialog.result() == QDialog::Accepted && ui.displaylist->selectedItems().count() == 1)
-    {
-      ui_.frame->setText(ui.displaylist->selectedItems().first()->text());
+      ui_.frame->setText(QString::fromStdString(frame));
       FrameEdited();
     }
   }
@@ -136,8 +123,6 @@ namespace mapviz_plugins
     initialized_ = true;
 
     UpdateShape();
-
-    canvas_->update();
   }
 
   void RobotImagePlugin::WidthChanged(double value)
@@ -145,8 +130,6 @@ namespace mapviz_plugins
     width_ = value;
 
     UpdateShape();
-
-    canvas_->update();
   }
 
   void RobotImagePlugin::HeightChanged(double value)
@@ -154,8 +137,6 @@ namespace mapviz_plugins
     height_ = value;
 
     UpdateShape();
-
-    canvas_->update();
   }
 
   void RobotImagePlugin::UpdateShape()
@@ -318,17 +299,29 @@ namespace mapviz_plugins
 
   void RobotImagePlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
-    node["frame"] >> source_frame_;
-    ui_.frame->setText(source_frame_.c_str());
+    if (node["frame"])
+    {
+      node["frame"] >> source_frame_;
+      ui_.frame->setText(source_frame_.c_str());
+    }
 
-    node["image"] >> filename_;
-    ui_.image->setText(filename_.c_str());
+    if (node["image"])
+    {
+      node["image"] >> filename_;
+      ui_.image->setText(filename_.c_str());
+    }
 
-    node["width"] >> width_;
-    ui_.width->setValue(width_);
+    if (node["width"])
+    {
+      node["width"] >> width_;
+      ui_.width->setValue(width_);
+    }
 
-    node["height"] >> height_;
-    ui_.height->setValue(height_);
+    if (node["height"])
+    {
+      node["height"] >> height_;
+      ui_.height->setValue(height_);
+    }
 
     UpdateShape();
     LoadImage();
