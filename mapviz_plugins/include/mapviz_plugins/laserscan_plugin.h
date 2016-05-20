@@ -89,44 +89,42 @@ namespace mapviz_plugins
       void SelectTopic();
       void TopicEdited();
       void AlphaEdited();
-      void SelectMinColor();
-      void SelectMaxColor();
       void ColorTransformerChanged(int index);
       void MinValueChanged(double value);
       void MaxValueChanged(double value);
       void PointSizeChanged(int value);
       void BufferSizeChanged(int value);
       void UseRainbowChanged(int check_state);
+      void UpdateColors();    
+      void DrawIcon();
 
     private:
       struct StampedPoint
       {
-          tf::Point point;
-          tf::Point transformed_point;
-          QColor color;
-          float range;
-          float intensity;
+        tf::Point point;
+        tf::Point transformed_point;
+        QColor color;
+        float range;
+        float intensity;
       };
 
       struct Scan
       {
-          ros::Time stamp;
-          QColor color;
-          std::vector<StampedPoint> points;
-          bool transformed;
-          bool has_intensity;
+        ros::Time stamp;
+        QColor color;
+        std::vector<StampedPoint> points;
+        std::string source_frame_;
+        bool transformed;
+        bool has_intensity;
       };
 
       void laserScanCallback(const sensor_msgs::LaserScanConstPtr& scan);
-      void UpdateColors();
       QColor CalculateColor(const StampedPoint& point, bool has_intensity);
-      void DrawIcon();
 
       Ui::laserscan_config ui_;
       QWidget* config_widget_;
 
       std::string topic_;
-      QColor min_color_, max_color_;
       double alpha_;
       double min_value_, max_value_;
       unsigned int point_size_;

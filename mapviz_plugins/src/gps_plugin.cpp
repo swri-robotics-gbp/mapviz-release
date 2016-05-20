@@ -25,7 +25,6 @@
 
 // QT libraries
 #include <QDialog>
-#include <QColorDialog>
 #include <QGLWidget>
 #include <QPalette>
 
@@ -36,6 +35,7 @@
 
 #include <swri_image_util/geometry_util.h>
 #include <swri_transform_util/transform_util.h>
+#include <mapviz/select_topic_dialog.h>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.h>
@@ -49,30 +49,30 @@ namespace mapviz_plugins
 {
   GpsPlugin::GpsPlugin() :
     config_widget_(new QWidget()),
-    color_(Qt::green),
     draw_style_(LINES)
   {
     ui_.setupUi(config_widget_);
+
+    ui_.color->setColor(Qt::green);
 
     // Set background white
     QPalette p(config_widget_->palette());
     p.setColor(QPalette::Background, Qt::white);
     config_widget_->setPalette(p);
 
-    // Initialize color selector color
-    ui_.selectcolor->setStyleSheet("background: " + color_.name() + ";");
-
     // Set status text red
     QPalette p3(ui_.status->palette());
     p3.setColor(QPalette::Text, Qt::red);
     ui_.status->setPalette(p3);
 
-    QObject::connect(ui_.selectcolor, SIGNAL(clicked()), this, SLOT(SelectColor()));
     QObject::connect(ui_.selecttopic, SIGNAL(clicked()), this, SLOT(SelectTopic()));
     QObject::connect(ui_.topic, SIGNAL(editingFinished()), this, SLOT(TopicEdited()));
-    QObject::connect(ui_.positiontolerance, SIGNAL(valueChanged(double)), this, SLOT(PositionToleranceChanged(double)));
+    QObject::connect(ui_.positiontolerance, SIGNAL(valueChanged(double)),
+                     this, SLOT(PositionToleranceChanged(double)));
     QObject::connect(ui_.buffersize, SIGNAL(valueChanged(int)), this, SLOT(BufferSizeChanged(int)));
     QObject::connect(ui_.drawstyle, SIGNAL(activated(QString)), this, SLOT(SetDrawStyle(QString)));
+    connect(ui_.color, SIGNAL(colorEdited(const QColor &)),
+            this, SLOT(DrawIcon()));
   }
 
   GpsPlugin::~GpsPlugin()
@@ -89,7 +89,7 @@ namespace mapviz_plugins
       QPainter painter(&icon);
       painter.setRenderHint(QPainter::Antialiasing, true);
       
-      QPen pen(color_);
+      QPen pen(ui_.color->color());
       
       if (draw_style_ == POINTS)
       {
@@ -135,47 +135,17 @@ namespace mapviz_plugins
     }
 
     DrawIcon();
-    canvas_->update();
   }
 
   void GpsPlugin::SelectTopic()
   {
-    QDialog dialog;
-    Ui::topicselect ui;
-    ui.setupUi(&dialog);
-
-    std::vector<ros::master::TopicInfo> topics;
-    ros::master::getTopics(topics);
-
-    for (unsigned int i = 0; i < topics.size(); i++)
+    ros::master::TopicInfo topic = mapviz::SelectTopicDialog::selectTopic(
+      "gps_common/GPSFix");
+      
+    if (!topic.name.empty())
     {
-      if (topics[i].datatype == "gps_common/GPSFix")
-      {
-        ui.displaylist->addItem(topics[i].name.c_str());
-      }
-    }
-    ui.displaylist->setCurrentRow(0);
-
-    dialog.exec();
-
-    if (dialog.result() == QDialog::Accepted && ui.displaylist->selectedItems().count() == 1)
-    {
-      ui_.topic->setText(ui.displaylist->selectedItems().first()->text());
+      ui_.topic->setText(QString::fromStdString(topic.name));
       TopicEdited();
-    }
-  }
-
-  void GpsPlugin::SelectColor()
-  {
-    QColorDialog dialog(color_, config_widget_);
-    dialog.exec();
-
-    if (dialog.result() == QDialog::Accepted)
-    {
-      color_ = dialog.selectedColor();
-      ui_.selectcolor->setStyleSheet("background: " + color_.name() + ";");
-      DrawIcon();
-      canvas_->update();
     }
   }
 
@@ -236,8 +206,6 @@ namespace mapviz_plugins
     }
 
     cur_point_ = stamped_point;
-
-    canvas_->update();
   }
 
   void GpsPlugin::PositionToleranceChanged(double value)
@@ -256,8 +224,6 @@ namespace mapviz_plugins
         points_.pop_front();
       }
     }
-
-    canvas_->update();
   }
 
   void GpsPlugin::PrintError(const std::string& message)
@@ -306,7 +272,6 @@ namespace mapviz_plugins
   bool GpsPlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
-
     DrawIcon();
 
     return true;
@@ -314,11 +279,11 @@ namespace mapviz_plugins
 
   void GpsPlugin::Draw(double x, double y, double scale)
   {
-    glColor4f(color_.redF(), color_.greenF(), color_.blueF(), 0.5);
+    QColor color = ui_.color->color();
 
     bool transformed = false;
 
-    glColor4f(color_.redF(), color_.greenF(), color_.blueF(), 1.0);
+    glColor4f(color.redF(), color.greenF(), color.blueF(), 1.0);
 
     if (draw_style_ == ARROWS)
     {
@@ -472,39 +437,53 @@ namespace mapviz_plugins
 
   void GpsPlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
-    std::string topic;
-    node["topic"] >> topic;
-    ui_.topic->setText(topic.c_str());
-
-    std::string color;
-    node["color"] >> color;
-    color_ = QColor(color.c_str());
-    ui_.selectcolor->setStyleSheet("background: " + color_.name() + ";");
-
-    std::string draw_style;
-    node["draw_style"] >> draw_style;
-
-    if (draw_style == "lines")
+    if (node["topic"])
     {
-      draw_style_ = LINES;
-      ui_.drawstyle->setCurrentIndex(0);
-    }
-    else if (draw_style == "points")
-    {
-      draw_style_ = POINTS;
-      ui_.drawstyle->setCurrentIndex(1);
-    }
-    else if (draw_style == "arrows")
-    {
-      draw_style_ = ARROWS;
-      ui_.drawstyle->setCurrentIndex(2);
+      std::string topic;
+      node["topic"] >> topic;
+      ui_.topic->setText(topic.c_str());
     }
 
-    node["position_tolerance"] >> position_tolerance_;
-    ui_.positiontolerance->setValue(position_tolerance_);
+    if (node["color"])
+    {
+      std::string color;
+      node["color"] >> color;
+      ui_.color->setColor(QColor(color.c_str()));
+    }
 
-    node["buffer_size"] >> buffer_size_;
-    ui_.buffersize->setValue(buffer_size_);
+    if (node["draw_style"])
+    {
+      std::string draw_style;
+      node["draw_style"] >> draw_style;
+      
+      if (draw_style == "lines")
+      {
+        draw_style_ = LINES;
+        ui_.drawstyle->setCurrentIndex(0);
+      }
+      else if (draw_style == "points")
+      {
+        draw_style_ = POINTS;
+        ui_.drawstyle->setCurrentIndex(1);
+      }
+      else if (draw_style == "arrows")
+      {
+        draw_style_ = ARROWS;
+        ui_.drawstyle->setCurrentIndex(2);
+      }
+    }
+
+    if (node["position_tolerance"])
+    {
+      node["position_tolerance"] >> position_tolerance_;
+      ui_.positiontolerance->setValue(position_tolerance_);
+    }
+
+    if (node["buffer_size"])
+    {
+      node["buffer_size"] >> buffer_size_;
+      ui_.buffersize->setValue(buffer_size_);
+    }
 
     TopicEdited();
   }
@@ -514,8 +493,7 @@ namespace mapviz_plugins
     std::string topic = ui_.topic->text().toStdString();
     emitter << YAML::Key << "topic" << YAML::Value << topic;
 
-    std::string color = color_.name().toStdString();
-    emitter << YAML::Key << "color" << YAML::Value << color;
+    emitter << YAML::Key << "color" << YAML::Value << ui_.color->color().name().toStdString();
 
     std::string draw_style = ui_.drawstyle->currentText().toStdString();
     emitter << YAML::Key << "draw_style" << YAML::Value << draw_style;
