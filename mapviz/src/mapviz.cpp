@@ -147,12 +147,13 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
   connect(canvas_, SIGNAL(Hover(double,double,double)), this, SLOT(Hover(double,double,double)));
   connect(ui_.configs, SIGNAL(ItemsMoved()), this, SLOT(ReorderDisplays()));
   connect(ui_.actionExit, SIGNAL(triggered()), this, SLOT(close()));
+  connect(ui_.bg_color, SIGNAL(colorEdited(const QColor &)), this, SLOT(SelectBackgroundColor(const QColor &)));
 
   connect(rec_button_, SIGNAL(toggled(bool)), this, SLOT(ToggleRecord(bool)));
   connect(stop_button_, SIGNAL(clicked()), this, SLOT(StopRecord()));
   connect(screenshot_button_, SIGNAL(clicked()), this, SLOT(Screenshot()));
 
-  ui_.bg_color->setStyleSheet("background: " + background_.name() + ";");
+  ui_.bg_color->setColor(background_);
   canvas_->SetBackground(background_);
 }
 
@@ -180,7 +181,7 @@ void Mapviz::Initialize()
       // If this Mapviz is running as a standalone application, it needs to init
       // ROS and start spinning.  If it's running as an rqt plugin, rqt will
       // take care of that.
-      ros::init(argc_, argv_, "mapviz");
+      ros::init(argc_, argv_, "mapviz", ros::init_options::AnonymousName);
 
       spin_timer_.start(30);
       connect(&spin_timer_, SIGNAL(timeout()), this, SLOT(SpinOnce()));
@@ -204,6 +205,8 @@ void Mapviz::Initialize()
     canvas_->SetTargetFrame(ui_.targetframe->currentText().toStdString());
 
     ros::NodeHandle priv("~");
+    
+    add_display_srv_ = node_->advertiseService("add_mapviz_display", &Mapviz::AddDisplay, this);
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     QString default_path = QDir::homePath();
@@ -495,6 +498,13 @@ void Mapviz::Open(const std::string& filename)
       ui_.actionRotate_90->setChecked(rotate_90);
     }
 
+    if (swri_yaml_util::FindValue(doc, "enable_antialiasing"))
+    {
+      bool enable_antialiasing = true;
+      doc["enable_antialiasing"] >> enable_antialiasing;
+      ui_.actionEnable_Antialiasing->setChecked(enable_antialiasing);
+    }
+
     if (swri_yaml_util::FindValue(doc, "show_displays"))
     {
       bool show_displays = false;
@@ -593,7 +603,7 @@ void Mapviz::Open(const std::string& filename)
       std::string color;
       doc["background"] >> color;
       background_ = QColor(color.c_str());
-      ui_.bg_color->setStyleSheet("background: " + background_.name() + ";");
+      ui_.bg_color->setColor(background_);
       canvas_->SetBackground(background_);
     }
 
@@ -671,6 +681,7 @@ void Mapviz::Save(const std::string& filename)
   out << YAML::Key << "target_frame" << YAML::Value << ui_.targetframe->currentText().toStdString();
   out << YAML::Key << "fix_orientation" << YAML::Value << ui_.actionFix_Orientation->isChecked();
   out << YAML::Key << "rotate_90" << YAML::Value << ui_.actionRotate_90->isChecked();
+  out << YAML::Key << "enable_antialiasing" << YAML::Value << ui_.actionEnable_Antialiasing->isChecked();
   out << YAML::Key << "show_displays" << YAML::Value << ui_.actionConfig_Dock->isChecked();
   out << YAML::Key << "show_status_bar" << YAML::Value << ui_.actionShow_Status_Bar->isChecked();
   out << YAML::Key << "show_capture_tools" << YAML::Value << ui_.actionShow_Capture_Tools->isChecked();
@@ -843,6 +854,75 @@ void Mapviz::SelectNewDisplay()
   }
 }
 
+bool Mapviz::AddDisplay(
+      AddMapvizDisplay::Request& req, 
+      AddMapvizDisplay::Response& resp)
+{
+  std::map<std::string, std::string> properties;
+  for (auto& property: req.properties)
+  {
+    properties[property.key] = property.value;
+  }
+
+  YAML::Node config;
+  if (!swri_yaml_util::LoadMap(properties, config))
+  {
+    ROS_ERROR("Failed to parse properties into YAML.");
+    return false;
+  }
+
+  for (auto& display: plugins_)
+  {
+    MapvizPluginPtr plugin = display.second;
+    if (!plugin)
+    {
+      ROS_ERROR("Invalid plugin ptr.");
+      continue;
+    }
+    if (plugin->Name() == req.name && plugin->Type() ==req.type)
+    {
+      plugin->LoadConfig(config, "");
+      plugin->SetVisible(req.visible);
+
+      if (req.draw_order > 0)
+      {
+        display.first->setData(Qt::UserRole, QVariant(req.draw_order - 1.1));
+        ui_.configs->sortItems();
+        
+        ReorderDisplays();
+      }
+      else if (req.draw_order < 0)
+      {
+        display.first->setData(Qt::UserRole, QVariant(ui_.configs->count() + req.draw_order + 0.1));
+        ui_.configs->sortItems();
+        
+        ReorderDisplays();
+      }
+      
+      resp.success = true;
+      
+      return true;
+    }
+  }
+  
+  try
+  {
+    MapvizPluginPtr plugin = 
+      CreateNewDisplay(req.name, req.type, req.visible, false, req.draw_order);
+    plugin->LoadConfig(config, "");
+    plugin->DrawIcon();
+    resp.success = true;
+  }
+  catch (const pluginlib::LibraryLoadException& e)
+  {
+    ROS_ERROR("%s", e.what());
+    resp.success = false;
+    resp.message = "Failed to load display plug-in.";
+  }
+  
+  return true;
+}
+
 void Mapviz::Hover(double x, double y, double scale)
 {
   if (ui_.statusbar->isVisible())
@@ -926,7 +1006,8 @@ MapvizPluginPtr Mapviz::CreateNewDisplay(
     const std::string& name,
     const std::string& type,
     bool visible,
-    bool collapsed)
+    bool collapsed,
+    int draw_order)
 {
   ConfigItem* config_item = new ConfigItem();
 
@@ -954,19 +1035,41 @@ MapvizPluginPtr Mapviz::CreateNewDisplay(
   plugin->SetName(name);
   plugin->SetNode(*node_);
   plugin->SetVisible(visible);
-  plugin->SetDrawOrder(ui_.configs->count());
+  
+  if (draw_order == 0)
+  {
+    plugin->SetDrawOrder(ui_.configs->count());
+  }
+  else if (draw_order > 0)
+  {
+    plugin->SetDrawOrder(std::min(ui_.configs->count(), draw_order - 1));
+  }
+  else if (draw_order < 0)
+  {
+    plugin->SetDrawOrder(std::max(0, ui_.configs->count() + draw_order + 1));
+  }
 
   QString pretty_type(real_type.c_str());
   pretty_type = pretty_type.split('/').last();
   config_item->SetType(pretty_type);
-  QListWidgetItem* item = new QListWidgetItem();
+  QListWidgetItem* item = new PluginConfigListItem();
   config_item->SetListItem(item);
   item->setSizeHint(config_item->sizeHint());
   connect(config_item, SIGNAL(UpdateSizeHint()), this, SLOT(UpdateSizeHints()));
   connect(config_item, SIGNAL(ToggledDraw(QListWidgetItem*, bool)), this, SLOT(ToggleShowPlugin(QListWidgetItem*, bool)));
+  connect(plugin.get(), SIGNAL(VisibleChanged(bool)), config_item, SLOT(ToggleDraw(bool)));
 
-  ui_.configs->addItem(item);
+  if (draw_order == 0)
+  {
+    ui_.configs->addItem(item);
+  }
+  else
+  {
+    ui_.configs->insertItem(plugin->DrawOrder(), item);
+  }
+  
   ui_.configs->setItemWidget(item, config_item);
+  ui_.configs->UpdateIndices();
 
   // Add plugin to canvas
   plugin->SetTargetFrame(ui_.fixedframe->currentText().toStdString());
@@ -978,6 +1081,8 @@ MapvizPluginPtr Mapviz::CreateNewDisplay(
 
   if (collapsed)
     config_item->Hide();
+
+  ReorderDisplays();
 
   return plugin;
 }
@@ -1031,6 +1136,11 @@ void Mapviz::ToggleFixOrientation(bool on)
 void Mapviz::ToggleRotate90(bool on)
 {
   canvas_->ToggleRotate90(on);
+}
+
+void Mapviz::ToggleEnableAntialiasing(bool on)
+{
+  canvas_->ToggleEnableAntialiasing(on);
 }
 
 void Mapviz::ToggleConfigPanel(bool on)
@@ -1232,17 +1342,10 @@ void Mapviz::ReorderDisplays()
   canvas_->ReorderDisplays();
 }
 
-void Mapviz::SelectBackgroundColor()
+void Mapviz::SelectBackgroundColor(const QColor &color)
 {
-  QColorDialog dialog(background_, this);
-  dialog.exec();
-
-  if (dialog.result() == QDialog::Accepted)
-  {
-    background_ = dialog.selectedColor();
-    ui_.bg_color->setStyleSheet("background: " + background_.name() + ";");
-    canvas_->SetBackground(background_);
-  }
+  background_ = color;
+  canvas_->SetBackground(background_);
 }
 
 void Mapviz::SetCaptureDirectory()

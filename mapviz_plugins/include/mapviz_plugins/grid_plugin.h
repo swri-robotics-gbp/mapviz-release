@@ -41,7 +41,6 @@
 #include <QObject>
 #include <QWidget>
 #include <QTimer>
-#include <QColor>
 
 // ROS libraries
 #include <ros/ros.h>
@@ -80,21 +79,19 @@ namespace mapviz_plugins
     void PrintWarning(const std::string& message);
 
   protected Q_SLOTS:
-    void SelectColor();
+    void SelectFrame();
+    void FrameEdited();
     void SetAlpha(double alpha);
     void SetX(double x);
     void SetY(double y);
     void SetSize(double size);
     void SetRows(int rows);
     void SetColumns(int columns);
-    void SetFrame(QString frame);
-    void UpdateFrames();
+    void DrawIcon();
 
   private:
     Ui::grid_config ui_;
     QWidget* config_widget_;
-    QTimer frame_timer_;
-    QColor color_;
 
     double alpha_;
 
@@ -122,7 +119,6 @@ namespace mapviz_plugins
 
     void RecalculateGrid();
     void Transform(std::list<tf::Point>& src, std::list<tf::Point>& dst);
-    void DrawIcon();
   };
 }
 

@@ -42,6 +42,8 @@
 #include <sensor_msgs/image_encodings.h>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include <mapviz/select_topic_dialog.h>
+
 // Declare plugin
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_DECLARE_CLASS(
@@ -84,6 +86,7 @@ namespace mapviz_plugins
     QObject::connect(ui_.offsety, SIGNAL(valueChanged(int)), this, SLOT(SetOffsetY(int)));
     QObject::connect(ui_.width, SIGNAL(valueChanged(int)), this, SLOT(SetWidth(int)));
     QObject::connect(ui_.height, SIGNAL(valueChanged(int)), this, SLOT(SetHeight(int)));
+    QObject::connect(this,SIGNAL(VisibleChanged(bool)),this,SLOT(SetSubscription(bool)));
   }
 
   ImagePlugin::~ImagePlugin()
@@ -93,27 +96,21 @@ namespace mapviz_plugins
   void ImagePlugin::SetOffsetX(int offset)
   {
     offset_x_ = offset;
-    canvas_->update();
   }
 
   void ImagePlugin::SetOffsetY(int offset)
   {
     offset_y_ = offset;
-    canvas_->update();
   }
 
   void ImagePlugin::SetWidth(int width)
   {
     width_ = width;
-
-    canvas_->update();
   }
 
   void ImagePlugin::SetHeight(int height)
   {
     height_ = height;
-
-    canvas_->update();
   }
 
   void ImagePlugin::SetAnchor(QString anchor)
@@ -154,8 +151,6 @@ namespace mapviz_plugins
     {
       anchor_ = BOTTOM_RIGHT;
     }
-
-    canvas_->update();
   }
 
   void ImagePlugin::SetUnits(QString units)
@@ -168,39 +163,63 @@ namespace mapviz_plugins
     {
       units_ = PERCENT;
     }
+  }
+  void ImagePlugin::SetSubscription(bool visible)
+  {
+    if(topic_.empty())
+    {
+      return;
+    }
+    else if(!visible)
+    {
+      image_sub_.shutdown();
+      ROS_INFO("Dropped subscription to %s", topic_.c_str());
+    }
+    else
+    {
+        image_transport::ImageTransport it(node_);
+        image_sub_ = it.subscribe(topic_, 1, &ImagePlugin::imageCallback, this);
 
-    canvas_->update();
+        ROS_INFO("Subscribing to %s", topic_.c_str());
+    }
   }
 
   void ImagePlugin::SelectTopic()
   {
-    QDialog dialog;
-    Ui::topicselect ui;
-    ui.setupUi(&dialog);
+    ros::master::TopicInfo topic = mapviz::SelectTopicDialog::selectTopic(
+      "sensor_msgs/Image");
 
-    std::vector<ros::master::TopicInfo> topics;
-    ros::master::getTopics(topics);
 
-    for (unsigned int i = 0; i < topics.size(); i++)
+    if(topic.name.empty())
     {
-      if (topics[i].datatype == "sensor_msgs/Image")
-      {
-        ui.displaylist->addItem(topics[i].name.c_str());
-      }
+      topic.name.clear();
+      TopicEdited();
+
     }
-    ui.displaylist->setCurrentRow(0);
-
-    dialog.exec();
-
-    if (dialog.result() == QDialog::Accepted && ui.displaylist->selectedItems().count() == 1)
-    {
-      ui_.topic->setText(ui.displaylist->selectedItems().first()->text());
+    if (!topic.name.empty()) {
+      ui_.topic->setText(QString::fromStdString(topic.name));
       TopicEdited();
     }
   }
 
   void ImagePlugin::TopicEdited()
   {
+
+    if(!this->Visible())
+    {
+      PrintWarning("Topic is Hidden");
+      initialized_ = false;
+      has_message_ = false;
+      topic_ = ui_.topic->text().toStdString();
+      image_sub_.shutdown();
+      return;
+    }
+    if (ui_.topic->text().toStdString().empty())
+    {
+      PrintWarning("No topic");
+      image_sub_.shutdown();
+      return;
+    }
     if (ui_.topic->text().toStdString() != topic_)
     {
       initialized_ = false;
@@ -209,13 +228,14 @@ namespace mapviz_plugins
       PrintWarning("No messages received.");
 
       image_sub_.shutdown();
-      image_sub_ = node_.subscribe(topic_, 1, &ImagePlugin::imageCallback, this);
+      image_transport::ImageTransport it(node_);
+      image_sub_ = it.subscribe(topic_, 1, &ImagePlugin::imageCallback, this);
 
       ROS_INFO("Subscribing to %s", topic_.c_str());
     }
   }
 
-  void ImagePlugin::imageCallback(const sensor_msgs::ImageConstPtr image)
+  void ImagePlugin::imageCallback(const sensor_msgs::ImageConstPtr& image)
   {
     if (!has_message_)
     {
@@ -239,8 +259,6 @@ namespace mapviz_plugins
     last_height_ = 0;
 
     has_image_ = true;
-
-    canvas_->update();
   }
 
   void ImagePlugin::PrintError(const std::string& message)
@@ -404,6 +422,7 @@ namespace mapviz_plugins
       y_pos = canvas_->height() - height - y_offset;
     }
 
+    glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
     glOrtho(0, canvas_->width(), canvas_->height(), 0, -0.5f, 0.5f);
@@ -420,34 +439,53 @@ namespace mapviz_plugins
 
   void ImagePlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
-    std::string topic;
-    node["topic"] >> topic;
-    ui_.topic->setText(topic.c_str());
+    if (node["topic"])
+    {
+      std::string topic;
+      node["topic"] >> topic;
+      ui_.topic->setText(topic.c_str());
+      TopicEdited();
+    }
 
-    TopicEdited();
+    if (node["anchor"])
+    {
+      std::string anchor;
+      node["anchor"] >> anchor;
+      ui_.anchor->setCurrentIndex(ui_.anchor->findText(anchor.c_str()));
+      SetAnchor(anchor.c_str());
+    }
 
-    std::string anchor;
-    node["anchor"] >> anchor;
-    ui_.anchor->setCurrentIndex(ui_.anchor->findText(anchor.c_str()));
-    SetAnchor(anchor.c_str());
+    if (node["units"])
+    {
+      std::string units;
+      node["units"] >> units;
+      ui_.units->setCurrentIndex(ui_.units->findText(units.c_str()));
+      SetUnits(units.c_str());
+    }
 
-    std::string units;
-    node["units"] >> units;
-    ui_.units->setCurrentIndex(ui_.units->findText(units.c_str()));
-    SetUnits(units.c_str());
+    if (node["offset_x"])
+    {
+      node["offset_x"] >> offset_x_;
+      ui_.offsetx->setValue(offset_x_);
+    }
 
+    if (node["offset_y"])
+    {
+      node["offset_y"] >> offset_y_;
+      ui_.offsety->setValue(offset_y_);
+    }
 
-    node["offset_x"] >> offset_x_;
-    ui_.offsetx->setValue(offset_x_);
+    if (node["width"])
+    {
+      node["width"] >> width_;
+      ui_.width->setValue(width_);
+    }
 
-    node["offset_y"] >> offset_y_;
-    ui_.offsety->setValue(offset_y_);
-
-    node["width"] >> width_;
-    ui_.width->setValue(width_);
-
-    node["height"] >> height_;
-    ui_.height->setValue(height_);
+    if (node["height"])
+    {
+      node["height"] >> height_;
+      ui_.height->setValue(height_);
+    }
   }
 
   void ImagePlugin::SaveConfig(YAML::Emitter& emitter, const std::string& path)
