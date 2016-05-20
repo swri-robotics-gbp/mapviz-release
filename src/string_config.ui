@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>tf_frame_config</class>
- <widget class="QWidget" name="tf_frame_config">
+ <class>string_config</class>
+ <widget class="QWidget" name="string_config">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -23,7 +23,7 @@
    <property name="margin">
     <number>2</number>
    </property>
-   <item row="7" column="0">
+   <item row="11" column="0">
     <widget class="QLabel" name="label_2">
      <property name="font">
       <font>
@@ -36,27 +36,8 @@
      </property>
     </widget>
    </item>
-   <item row="7" column="1" colspan="2">
-    <widget class="QLabel" name="status">
-     <property name="font">
-      <font>
-       <family>Sans Serif</family>
-       <pointsize>8</pointsize>
-      </font>
-     </property>
-     <property name="styleSheet">
-      <string notr="true"/>
-     </property>
-     <property name="text">
-      <string>No topic</string>
-     </property>
-     <property name="wordWrap">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
    <item row="2" column="2">
-    <widget class="QPushButton" name="selectframe">
+    <widget class="QPushButton" name="selecttopic">
      <property name="maximumSize">
       <size>
        <width>55</width>
@@ -78,7 +59,7 @@
     </widget>
    </item>
    <item row="2" column="1">
-    <widget class="QLineEdit" name="frame">
+    <widget class="QLineEdit" name="topic">
      <property name="font">
       <font>
        <family>Sans Serif</family>
@@ -96,12 +77,44 @@
       </font>
      </property>
      <property name="text">
-      <string>Frame:</string>
+      <string>Topic:</string>
      </property>
     </widget>
    </item>
    <item row="3" column="0">
-    <widget class="QLabel" name="label_3">
+    <widget class="QLabel" name="font_label">
+     <property name="font">
+      <font>
+       <family>Sans Serif</family>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Font:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QPushButton" name="font_button">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="font">
+      <font>
+       <family>Sans Serif</family>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Helvetica</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="color_label">
      <property name="font">
       <font>
        <family>Sans Serif</family>
@@ -113,39 +126,7 @@
      </property>
     </widget>
    </item>
-   <item row="5" column="0">
-    <widget class="QLabel" name="label_4">
-     <property name="font">
-      <font>
-       <family>Sans Serif</family>
-       <pointsize>8</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Position Tolerance:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="1">
-    <widget class="QDoubleSpinBox" name="positiontolerance">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="buttonSymbols">
-      <enum>QAbstractSpinBox::PlusMinus</enum>
-     </property>
-     <property name="suffix">
-      <string/>
-     </property>
-     <property name="value">
-      <double>1.000000000000000</double>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="1">
+   <item row="4" column="1">
     <widget class="mapviz::ColorButton" name="color">
      <property name="maximumSize">
       <size>
@@ -164,44 +145,8 @@
      </property>
     </widget>
    </item>
-   <item row="6" column="0">
-    <widget class="QLabel" name="label_6">
-     <property name="font">
-      <font>
-       <family>Sans Serif</family>
-       <pointsize>8</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Buffer Size:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="1">
-    <widget class="QSpinBox" name="buffersize">
-     <property name="buttonSymbols">
-      <enum>QAbstractSpinBox::PlusMinus</enum>
-     </property>
-     <property name="maximum">
-      <number>99999999</number>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0">
-    <widget class="QLabel" name="label_7">
-     <property name="font">
-      <font>
-       <family>Sans Serif</family>
-       <pointsize>8</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Draw Style:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="1">
-    <widget class="QComboBox" name="drawstyle">
+   <item row="5" column="1">
+    <widget class="QComboBox" name="anchor">
      <property name="maximumSize">
       <size>
        <width>16777215</width>
@@ -216,17 +161,158 @@
      </property>
      <item>
       <property name="text">
-       <string>lines</string>
+       <string>top left</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>points</string>
+       <string>top center</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>arrows</string>
+       <string>top right</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>center left</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>center</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>center right</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>bottom left</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>bottom center</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>bottom right</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="label_3">
+     <property name="font">
+      <font>
+       <family>Sans Serif</family>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Anchor:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel" name="label_4">
+     <property name="font">
+      <font>
+       <family>Sans Serif</family>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Offset X:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="1">
+    <widget class="QSpinBox" name="offsetx">
+     <property name="maximum">
+      <number>2000</number>
+     </property>
+    </widget>
+   </item>
+   <item row="11" column="1" colspan="2">
+    <widget class="QLabel" name="status">
+     <property name="font">
+      <font>
+       <family>Sans Serif</family>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true"/>
+     </property>
+     <property name="text">
+      <string>No topic</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="0">
+    <widget class="QLabel" name="label_5">
+     <property name="font">
+      <font>
+       <family>Sans Serif</family>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Offset Y:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="1">
+    <widget class="QSpinBox" name="offsety">
+     <property name="maximum">
+      <number>2000</number>
+     </property>
+    </widget>
+   </item>
+   <item row="10" column="0">
+    <widget class="QLabel" name="label_8">
+     <property name="font">
+      <font>
+       <family>Sans Serif</family>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Units:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="10" column="1">
+    <widget class="QComboBox" name="units">
+     <property name="maximumSize">
+      <size>
+       <width>16777213</width>
+       <height>25</height>
+      </size>
+     </property>
+     <property name="font">
+      <font>
+       <family>Sans Serif</family>
+       <pointsize>9</pointsize>
+      </font>
+     </property>
+     <item>
+      <property name="text">
+       <string>pixels</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>percent</string>
       </property>
      </item>
     </widget>
@@ -246,6 +332,7 @@
   <slot>SelectColor()</slot>
   <slot>SelectTopic()</slot>
   <slot>TopicEdited()</slot>
+  <slot>SelectFont()</slot>
   <slot>PositionToleranceChanged(double)</slot>
   <slot>AngleToleranceChanged(double)</slot>
  </slots>

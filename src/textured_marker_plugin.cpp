@@ -47,6 +47,8 @@
 
 #include <swri_math_util/constants.h>
 
+#include <mapviz/select_topic_dialog.h>
+
 // Declare plugin
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_DECLARE_CLASS(
@@ -75,6 +77,20 @@ namespace mapviz_plugins
 
     QObject::connect(ui_.selecttopic, SIGNAL(clicked()), this, SLOT(SelectTopic()));
     QObject::connect(ui_.topic, SIGNAL(editingFinished()), this, SLOT(TopicEdited()));
+
+    // By using a signal/slot connection, we ensure that we only generate GL textures on the
+    // main thread in case a non-main thread handles the ROS callbacks.
+    qRegisterMetaType<marti_visualization_msgs::TexturedMarkerConstPtr>("TexturedMarkerConstPtr");
+    qRegisterMetaType<marti_visualization_msgs::TexturedMarkerArrayConstPtr>("TexturedMarkerArrayConstPtr");
+
+    QObject::connect(this, 
+                     SIGNAL(MarkerReceived(const marti_visualization_msgs::TexturedMarkerConstPtr)),
+                     this,
+                     SLOT(ProcessMarker(const marti_visualization_msgs::TexturedMarkerConstPtr)));
+    QObject::connect(this,
+                     SIGNAL(MarkersReceived(const marti_visualization_msgs::TexturedMarkerArrayConstPtr)),
+                     this,
+                     SLOT(ProcessMarkers(const marti_visualization_msgs::TexturedMarkerArrayConstPtr)));
   }
 
   TexturedMarkerPlugin::~TexturedMarkerPlugin()
@@ -83,39 +99,16 @@ namespace mapviz_plugins
 
   void TexturedMarkerPlugin::SelectTopic()
   {
-    QDialog dialog;
-    Ui::topicselect ui;
-    ui.setupUi(&dialog);
+    ros::master::TopicInfo topic = mapviz::SelectTopicDialog::selectTopic(
+      "marti_visualization_msgs/TexturedMarker",
+      "marti_visualization_msgs/TexturedMarkerArray");
 
-    std::vector<ros::master::TopicInfo> topics;
-    ros::master::getTopics(topics);
-
-    for (unsigned int i = 0; i < topics.size(); i++)
+    if (!topic.name.empty())
     {
-      if (topics[i].datatype == "marti_visualization_msgs/TexturedMarker" || topics[i].datatype == "marti_visualization_msgs/TexturedMarkerArray")
-      {
-        ui.displaylist->addItem(topics[i].name.c_str());
-      }
-    }
-    ui.displaylist->setCurrentRow(0);
+      ui_.topic->setText(QString::fromStdString(topic.name));
 
-    dialog.exec();
-
-    if (dialog.result() == QDialog::Accepted && ui.displaylist->selectedItems().count() == 1)
-    {
-      ui_.topic->setText(ui.displaylist->selectedItems().first()->text());
-
-      // Determine if this is a marker array
-      is_marker_array_ = false;
-      for (unsigned int i = 0; i < topics.size(); i++)
-      {
-        if (topics[i].datatype == "marti_visualization_msgs/TexturedMarkerArray")
-        {
-          if (ui.displaylist->selectedItems().first()->text().toStdString() == topics[i].name)
-          {
-            is_marker_array_ = true;
-          }
-        }
+      if (topic.datatype == "marti_visualization_msgs/TexturedMarkerArray") {
+        is_marker_array_ = true;
       }
 
       TopicEdited();
@@ -147,14 +140,23 @@ namespace mapviz_plugins
     }
   }
 
+  void TexturedMarkerPlugin::ProcessMarker(const marti_visualization_msgs::TexturedMarkerConstPtr marker)
+  {
+    ProcessMarker(*marker);
+  }
+
   void TexturedMarkerPlugin::ProcessMarker(const marti_visualization_msgs::TexturedMarker& marker)
   {
     if (!has_message_)
     {
-      source_frame_ = marker.header.frame_id;
       initialized_ = true;
       has_message_ = true;
     }
+
+    // Note that unlike some plugins, this one does not store nor rely on the
+    // source_frame_ member variable.  This one can potentially store many
+    // messages with different source frames, so we need to store and transform
+    // them individually.
 
     if (marker.action == marti_visualization_msgs::TexturedMarker::ADD)
     {
@@ -163,12 +165,13 @@ namespace mapviz_plugins
 
       markerData.transformed = true;
       markerData.alpha_ = marker.alpha;
+      markerData.source_frame_ = marker.header.frame_id;
 
       swri_transform_util::Transform transform;
-      if (!GetTransform(marker.header.stamp, transform))
+      if (!GetTransform(markerData.source_frame_, marker.header.stamp, transform))
       {
         markerData.transformed = false;
-        PrintError("No transform between " + source_frame_ + " and " + target_frame_);
+        PrintError("No transform between " + markerData.source_frame_ + " and " + target_frame_);
       }
 
       // Handle lifetime parameter
@@ -261,6 +264,14 @@ namespace mapviz_plugins
         {
           markerData.texture_.resize(markerData.texture_size_ * markerData.texture_size_ * 3);
         }
+        else if (markerData.encoding_ == sensor_msgs::image_encodings::MONO8)
+        {
+          markerData.texture_.resize(markerData.texture_size_ * markerData.texture_size_);
+        }
+        else
+        {
+          ROS_WARN("Unsupported encoding: %s", markerData.encoding_.c_str());
+        }
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -328,6 +339,30 @@ namespace mapviz_plugins
             GL_UNSIGNED_BYTE, 
             markerData.texture_.data());
       }
+      else if (markerData.encoding_ == sensor_msgs::image_encodings::MONO8)
+      {
+        for (size_t row = 0; row < marker.image.height; row++)
+        {
+          for (size_t col = 0; col < marker.image.width; col++)
+          {
+            size_t src_index = row * marker.image.width + col;
+            size_t dst_index = row * markerData.texture_size_ + col;
+            
+            markerData.texture_[dst_index] = marker.image.data[src_index];
+          }
+        }
+      
+        glTexImage2D(
+            GL_TEXTURE_2D, 
+            0, 
+            GL_LUMINANCE, 
+            markerData.texture_size_, 
+            markerData.texture_size_, 
+            0, 
+            GL_LUMINANCE, 
+            GL_UNSIGNED_BYTE, 
+            markerData.texture_.data());
+      }
       
       glBindTexture(GL_TEXTURE_2D, 0);
       
@@ -338,21 +373,25 @@ namespace mapviz_plugins
     {
       markers_[marker.ns].erase(marker.id);
     }
-
-    canvas_->update();
   }
-
-  void TexturedMarkerPlugin::MarkerCallback(const marti_visualization_msgs::TexturedMarkerConstPtr marker)
-  {
-    ProcessMarker(*marker);
-  }
-
-  void TexturedMarkerPlugin::MarkerArrayCallback(const marti_visualization_msgs::TexturedMarkerArrayConstPtr markers)
+  
+  void TexturedMarkerPlugin::ProcessMarkers(const marti_visualization_msgs::TexturedMarkerArrayConstPtr markers)
   {
     for (unsigned int i = 0; i < markers->markers.size(); i++)
     {
       ProcessMarker(markers->markers[i]);
     }
+  }
+  
+
+  void TexturedMarkerPlugin::MarkerCallback(const marti_visualization_msgs::TexturedMarkerConstPtr marker)
+  {
+    Q_EMIT MarkerReceived(marker);
+  }
+
+  void TexturedMarkerPlugin::MarkerArrayCallback(const marti_visualization_msgs::TexturedMarkerArrayConstPtr markers)
+  {
+    Q_EMIT MarkersReceived(markers);
   }
 
   void TexturedMarkerPlugin::PrintError(const std::string& message)
@@ -462,7 +501,7 @@ namespace mapviz_plugins
       for (markerIter = nsIter->second.begin(); markerIter != nsIter->second.end(); ++markerIter)
       {
         swri_transform_util::Transform transform;
-        if (GetTransform(markerIter->second.stamp, transform))
+        if (GetTransform(markerIter->second.source_frame_, markerIter->second.stamp, transform))
         {
           markerIter->second.transformed_quad_.clear();
           for (size_t i = 0; i < markerIter->second.quad_.size(); i++)
@@ -476,11 +515,17 @@ namespace mapviz_plugins
 
   void TexturedMarkerPlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
-    std::string topic;
-    node["topic"] >> topic;
-    ui_.topic->setText(boost::trim_copy(topic).c_str());
+    if (node["topic"])
+    {
+      std::string topic;
+      node["topic"] >> topic;
+      ui_.topic->setText(boost::trim_copy(topic).c_str());
+    }
 
-    node["is_marker_array"] >> is_marker_array_;
+    if (node["is_marker_array"])
+    {
+      node["is_marker_array"] >> is_marker_array_;
+    }
 
     TopicEdited();
   }
