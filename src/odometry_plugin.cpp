@@ -34,7 +34,6 @@
 #include <vector>
 
 // QT libraries
-#include <QColorDialog>
 #include <QDialog>
 #include <QGLWidget>
 #include <QPainter>
@@ -47,6 +46,7 @@
 
 #include <swri_image_util/geometry_util.h>
 #include <swri_transform_util/transform_util.h>
+#include <mapviz/select_topic_dialog.h>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.h>
@@ -60,30 +60,29 @@ namespace mapviz_plugins
 {
   OdometryPlugin::OdometryPlugin() :
     config_widget_(new QWidget()),
-    color_(Qt::green),
     draw_style_(LINES)
   {
     ui_.setupUi(config_widget_);
 
+    ui_.color->setColor(Qt::green);
+    
     // Set background white
     QPalette p(config_widget_->palette());
     p.setColor(QPalette::Background, Qt::white);
     config_widget_->setPalette(p);
-
-    // Initialize color selector color
-    ui_.selectcolor->setStyleSheet("background: " + color_.name() + ";");
 
     // Set status text red
     QPalette p3(ui_.status->palette());
     p3.setColor(QPalette::Text, Qt::red);
     ui_.status->setPalette(p3);
 
-    QObject::connect(ui_.selectcolor, SIGNAL(clicked()), this, SLOT(SelectColor()));
     QObject::connect(ui_.selecttopic, SIGNAL(clicked()), this, SLOT(SelectTopic()));
     QObject::connect(ui_.topic, SIGNAL(editingFinished()), this, SLOT(TopicEdited()));
     QObject::connect(ui_.positiontolerance, SIGNAL(valueChanged(double)), this, SLOT(PositionToleranceChanged(double)));
     QObject::connect(ui_.buffersize, SIGNAL(valueChanged(int)), this, SLOT(BufferSizeChanged(int)));
     QObject::connect(ui_.drawstyle, SIGNAL(activated(QString)), this, SLOT(SetDrawStyle(QString)));
+    connect(ui_.color, SIGNAL(colorEdited(const QColor &)),
+            this, SLOT(DrawIcon()));
   }
 
   OdometryPlugin::~OdometryPlugin()
@@ -100,7 +99,7 @@ namespace mapviz_plugins
       QPainter painter(&icon);
       painter.setRenderHint(QPainter::Antialiasing, true);
       
-      QPen pen(color_);
+      QPen pen(ui_.color->color());
       
       if (draw_style_ == POINTS)
       {
@@ -146,47 +145,17 @@ namespace mapviz_plugins
     }
 
     DrawIcon();
-    canvas_->update();
   }
 
   void OdometryPlugin::SelectTopic()
   {
-    QDialog dialog;
-    Ui::topicselect ui;
-    ui.setupUi(&dialog);
-
-    std::vector<ros::master::TopicInfo> topics;
-    ros::master::getTopics(topics);
-
-    for (unsigned int i = 0; i < topics.size(); i++)
+    ros::master::TopicInfo topic = mapviz::SelectTopicDialog::selectTopic(
+      "nav_msgs/Odometry");
+    
+    if (!topic.name.empty())
     {
-      if (topics[i].datatype == "nav_msgs/Odometry")
-      {
-        ui.displaylist->addItem(topics[i].name.c_str());
-      }
-    }
-    ui.displaylist->setCurrentRow(0);
-
-    dialog.exec();
-
-    if (dialog.result() == QDialog::Accepted && ui.displaylist->selectedItems().count() == 1)
-    {
-      ui_.topic->setText(ui.displaylist->selectedItems().first()->text());
+      ui_.topic->setText(QString::fromStdString(topic.name));
       TopicEdited();
-    }
-  }
-
-  void OdometryPlugin::SelectColor()
-  {
-    QColorDialog dialog(color_, config_widget_);
-    dialog.exec();
-
-    if (dialog.result() == QDialog::Accepted)
-    {
-      color_ = dialog.selectedColor();
-      ui_.selectcolor->setStyleSheet("background: " + color_.name() + ";");
-      DrawIcon();
-      canvas_->update();
     }
   }
 
@@ -211,13 +180,18 @@ namespace mapviz_plugins
   {
     if (!has_message_)
     {
-      source_frame_ = odometry->header.frame_id;
       initialized_ = true;
       has_message_ = true;
     }
 
+    // Note that unlike some plugins, this one does not store nor rely on the
+    // source_frame_ member variable.  This one can potentially store many
+    // messages with different source frames, so we need to store and transform
+    // them individually.
+
     StampedPoint stamped_point;
     stamped_point.stamp = odometry->header.stamp;
+    stamped_point.source_frame = odometry->header.frame_id;
 
     stamped_point.point = tf::Point(
         odometry->pose.pose.position.x,
@@ -276,8 +250,6 @@ namespace mapviz_plugins
         }
       }
     }
-
-    canvas_->update();
   }
 
   void OdometryPlugin::PositionToleranceChanged(double value)
@@ -296,8 +268,6 @@ namespace mapviz_plugins
         points_.pop_front();
       }
     }
-
-    canvas_->update();
   }
 
   void OdometryPlugin::PrintError(const std::string& message)
@@ -354,7 +324,9 @@ namespace mapviz_plugins
 
   void OdometryPlugin::Draw(double x, double y, double scale)
   {
-    glColor4f(color_.redF(), color_.greenF(), color_.blueF(), 0.5);
+    QColor color = ui_.color->color();
+    
+    glColor4f(color.redF(), color.greenF(), color.blueF(), 0.5);
 
     bool transformed = false;
 
@@ -363,7 +335,7 @@ namespace mapviz_plugins
       DrawCovariance();
     }
 
-    glColor4f(color_.redF(), color_.greenF(), color_.blueF(), 1.0);
+    glColor4f(color.redF(), color.greenF(), color.blueF(), 1.0);
 
     if (draw_style_ == ARROWS)
     {
@@ -493,7 +465,7 @@ namespace mapviz_plugins
   bool OdometryPlugin::TransformPoint(StampedPoint& point)
   {
     swri_transform_util::Transform transform;
-    if (GetTransform(point.stamp, transform))
+    if (GetTransform(point.source_frame, point.stamp, transform))
     {
       point.transformed_point = transform * point.point;
 
@@ -532,45 +504,59 @@ namespace mapviz_plugins
 
     if (!points_.empty() && !transformed)
     {
-      PrintError("No transform between " + source_frame_ + " and " + target_frame_);
+      PrintError("No transform between " + cur_point_.source_frame + " and " + target_frame_);
     }
   }
 
   void OdometryPlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
-    std::string topic;
-    node["topic"] >> topic;
-    ui_.topic->setText(topic.c_str());
-
-    std::string color;
-    node["color"] >> color;
-    color_ = QColor(color.c_str());
-    ui_.selectcolor->setStyleSheet("background: " + color_.name() + ";");
-
-    std::string draw_style;
-    node["draw_style"] >> draw_style;
-
-    if (draw_style == "lines")
+    if (node["topic"])
     {
-      draw_style_ = LINES;
-      ui_.drawstyle->setCurrentIndex(0);
-    }
-    else if (draw_style == "points")
-    {
-      draw_style_ = POINTS;
-      ui_.drawstyle->setCurrentIndex(1);
-    }
-    else if (draw_style == "arrows")
-    {
-      draw_style_ = ARROWS;
-      ui_.drawstyle->setCurrentIndex(2);
+      std::string topic;
+      node["topic"] >> topic;
+      ui_.topic->setText(topic.c_str());
     }
 
-    node["position_tolerance"] >> position_tolerance_;
-    ui_.positiontolerance->setValue(position_tolerance_);
+    if (node["color"])
+    {
+      std::string color;
+      node["color"] >> color;
+      ui_.color->setColor(QColor(color.c_str()));
+    }
 
-    node["buffer_size"] >> buffer_size_;
-    ui_.buffersize->setValue(buffer_size_);
+    if (node["draw_style"])
+    {
+      std::string draw_style;
+      node["draw_style"] >> draw_style;
+
+      if (draw_style == "lines")
+      {
+        draw_style_ = LINES;
+        ui_.drawstyle->setCurrentIndex(0);
+      }
+      else if (draw_style == "points")
+      {
+        draw_style_ = POINTS;
+        ui_.drawstyle->setCurrentIndex(1);
+      }
+      else if (draw_style == "arrows")
+      {
+        draw_style_ = ARROWS;
+        ui_.drawstyle->setCurrentIndex(2);
+      }
+    }
+
+    if (node["position_tolerance"])
+    {
+      node["position_tolerance"] >> position_tolerance_;
+      ui_.positiontolerance->setValue(position_tolerance_);
+    }
+
+    if (node["buffer_size"])
+    {
+      node["buffer_size"] >> buffer_size_;
+      ui_.buffersize->setValue(buffer_size_);
+    }
 
     if (swri_yaml_util::FindValue(node, "show_covariance"))
     {
@@ -587,7 +573,7 @@ namespace mapviz_plugins
     std::string topic = ui_.topic->text().toStdString();
     emitter << YAML::Key << "topic" << YAML::Value << topic;
 
-    std::string color = color_.name().toStdString();
+    std::string color = ui_.color->color().name().toStdString();
     emitter << YAML::Key << "color" << YAML::Value << color;
 
     std::string draw_style = ui_.drawstyle->currentText().toStdString();
