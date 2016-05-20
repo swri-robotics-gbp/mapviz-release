@@ -1,0 +1,12 @@
+Source: ros-jade-mapviz
+Section: misc
+Priority: extra
+Maintainer: Marc Alban <malban@swri.org>
+Build-Depends: debhelper (>= 9.0.0), freeglut3-dev, libglew-dev, libopencv-dev, libqt4-dev, libqt4-opengl-dev, libxmu-dev, pkg-config, qt4-qmake, ros-jade-catkin, ros-jade-marti-common-msgs, ros-jade-message-generation, ros-jade-pluginlib, ros-jade-roscpp, ros-jade-rqt-gui, ros-jade-rqt-gui-cpp, ros-jade-std-srvs, ros-jade-swri-transform-util, ros-jade-swri-yaml-util, ros-jade-tf
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-jade-mapviz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freeglut3-dev, libglew-dev, libopencv-dev, libqt4-dbus, libqt4-network, libqt4-opengl, libqt4-script, libqt4-test, libqt4-xml, libqtcore4, libxmu-dev, qt4-qmake, ros-jade-marti-common-msgs, ros-jade-message-runtime, ros-jade-pluginlib, ros-jade-roscpp, ros-jade-rqt-gui, ros-jade-rqt-gui-cpp, ros-jade-std-srvs, ros-jade-swri-transform-util, ros-jade-swri-yaml-util, ros-jade-tf
+Description: mapviz
