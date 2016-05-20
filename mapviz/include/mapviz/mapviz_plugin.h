@@ -56,6 +56,8 @@ namespace mapviz
 {
   class MapvizPlugin : public QObject
   {
+    Q_OBJECT;
+    
   public:
     virtual ~MapvizPlugin() {}
 
@@ -70,7 +72,17 @@ namespace mapviz
 
     virtual void Shutdown() = 0;
 
+    /**
+     * Draws on the Mapviz canvas using OpenGL commands; this will be called
+     * before Paint();
+     */
     virtual void Draw(double x, double y, double scale) = 0;
+
+    /**
+     * Draws on the Mapviz canvas using a QPainter; this is called after Draw().
+     * You only need to implement this if you're actually using a QPainter.
+     */
+    virtual void Paint(QPainter* painter, double x, double y, double scale) {};
 
     void SetUseLatestTransforms(bool value)
     {
@@ -92,7 +104,7 @@ namespace mapviz
       draw_order_ = order;
     }
 
-    void SetNode(const ros::NodeHandle& node)
+    virtual void SetNode(const ros::NodeHandle& node)
     {
       node_ = node;
     }
@@ -104,6 +116,16 @@ namespace mapviz
         Transform();
 
         Draw(x, y, scale);
+      }
+    }
+    
+    void PaintPlugin(QPainter* painter, double x, double y, double scale)
+    {
+      if (visible_ && initialized_)
+      {
+        Transform();
+         
+        Paint(painter, x, y, scale);
       }
     }
 
@@ -121,6 +143,7 @@ namespace mapviz
     void SetVisible(bool visible)
     {
       visible_ = visible;
+      Q_EMIT VisibleChanged(visible_);
     }
 
     bool GetTransform(const ros::Time& stamp, swri_transform_util::Transform& transform, bool use_latest_transforms = true)
@@ -209,6 +232,20 @@ namespace mapviz
     virtual void PrintWarning(const std::string& message) = 0;
 
     void SetIcon(IconWidget* icon) { icon_ = icon; }
+
+
+    /**
+     * Override this to return "true" if you want QPainter support for your
+     * plugin.
+     */
+    virtual bool SupportsPainting()
+    {
+      return false;
+    }
+
+  Q_SIGNALS:
+    void VisibleChanged(bool visible);
+    
 
   protected:
     bool initialized_;
