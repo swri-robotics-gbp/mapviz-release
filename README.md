@@ -1,3 +1,30 @@
+## mapviz (jade) - 0.1.3-0
+
+The packages in the `mapviz` repository were released into the `jade` distro by running `/usr/bin/bloom-release mapviz --track jade --ros-distro jade` on `Fri, 20 May 2016 20:15:02 -0000`
+
+These packages were released:
+- `mapviz`
+- `mapviz_plugins`
+- `multires_image`
+- `tile_map`
+
+Version of package(s) in repository `mapviz`:
+
+- upstream repository: https://github.com/swri-robotics/mapviz.git
+- release repository: https://github.com/swri-robotics-gbp/mapviz-release.git
+- rosdistro version: `0.1.2-0`
+- old version: `0.1.2-0`
+- new version: `0.1.3-0`
+
+Versions of tools used:
+
+- bloom version: `0.5.21`
+- catkin_pkg version: `0.2.10`
+- rosdep version: `0.11.4`
+- rosdistro version: `0.4.7`
+- vcstools version: `0.1.38`
+
+
 ## mapviz (indigo) - 0.0.5-0
 
 The packages in the `mapviz` repository were released into the `indigo` distro by running `/usr/bin/bloom-release mapviz --track indigo --ros-distro indigo` on `Fri, 20 May 2016 19:45:06 -0000`
