@@ -2,10 +2,10 @@
 Changelog for package mapviz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-0.0.5 (2016-05-20)
+0.1.3 (2016-05-20)
 ------------------
 * Implement mapviz plug-in for calling the marti_nav_msgs::PlanRoute service.
-* Adding an explicit dependency on pkg-config to package.xml (`#354 <https://github.com/swri-robotics/mapviz/issues/354>`_)
+* Adding an explicit dependency on pkg-config to package.xml (`#355 <https://github.com/swri-robotics/mapviz/issues/355>`_)
 * Add _gencpp dependency to mapviz targets.
   This commit adds the _gencpp target to mapviz targets to ensure that
   the AddMapvizDisplay service is built before the targets.
@@ -41,15 +41,15 @@ Changelog for package mapviz
   the explicit calls in many locations are unnecessary.  It was also
   possible for it to be called in some of these locations from a
   non-main thread, which is invalid and could cause crashes.
-* Enabling anti-aliasing for QPainter drawing
 * Adding the ability to toggle anti-aliasing
   Now there's a checkbox under the "View" menu that will toggle whether
   anti-aliasing is applied to the canvas.  In some situations this will
   make the display look much prettier at a slight performance cost.
 * Cleaning up documentation.
-* Plugins can now draw using a QPainter
+* Merging QPainter/anti-aliasing fixes into jade-devel
   This is the same as the old version of this change, except updated
   to the most recent version of Mapviz.
+* Fixing a compile error
 * Fix for `#298 <https://github.com/swri-robotics/mapviz/issues/298>`_; right-click + drag will now zoom
 * Update map canvas at a fixed rate.
   This update adds a timer to the map canvas to repaint at a fixed rate.
@@ -65,16 +65,16 @@ Changelog for package mapviz
   use to filter the frames to a specific substring.
 * Fixing an issue that could cause the click publisher plugin's publisher to not be initialized after it's first added.
 * Adding a plugin that, when a user clicks on a point, will publish that point's coordinates to a topic.
-* Remove debugging messages from SelectFrameDialog.
-  These were accidentally left in during initial development.
 * Adding color button widget and updating plugins.
   This commit adds a subclass of QPushButton called ColorButton that
   implements a widget for displaying and selecting colors.  We've been
   doing this manually everywhere with duplicated code.  This is a simple
   abstraction but allows us to elminate a lot of duplication, especially
   in plugins that have multiple color selections.
+* Remove debugging messages from SelectFrameDialog.
+  These were accidentally left in during initial development.
 * Add documentation for the SelectTopicDialog.
-* Adds SelectTopicDialog to mapviz.
+* Adds SelecTopicDialog to mapviz.
   This commit adds the SelectTopicDialog that can be used in plugins to
   provide the user with a dialog to select topics.  Typically we have
   done this with a lot of duplicated code across all the plugins.  This
@@ -89,14 +89,21 @@ Changelog for package mapviz
   - Continuously checks the master for new topics while the dialog is open.
 * Contributors: Elliot Johnson, Marc Alban, P. J. Reed
 
-0.0.4 (2016-01-06)
+0.1.2 (2016-01-06)
 ------------------
 * Show full path when recording screenshots/movies.
 * Fixes a bug in plug-in sorting.
 * Sorts topic, plug-in, and frame lists in selection dialogs.
-* Fixes mapviz launch file frame parameter
+* Contributors: Elliot Johnson, Marc Alban
+
+0.1.1 (2015-11-17)
+------------------
+* Fixes mapviz launch file frame param
 * Marks single argument constructors explicit.
-* Contributors: Edward Venator, Elliot Johnson, Marc Alban, Vincent Rousseau
+* Contributors: Edward Venator, Marc Alban, Vincent Rousseau
+
+0.1.0 (2015-09-29)
+------------------
 
 0.0.3 (2015-09-28)
 ------------------
