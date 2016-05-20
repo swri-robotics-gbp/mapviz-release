@@ -27,42 +27,56 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_PLUGINS_MULTIRES_VIEW_H_
-#define MAPVIZ_PLUGINS_MULTIRES_VIEW_H_
-
-// QT libraries
-#include <QGLWidget>
-
-#include <multires_image/tile_set.h>
-#include <multires_image/tile_cache.h>
+#include <QMouseEvent>
+#include <QLineF>
+#include <QDateTime>
+#include "include/mapviz_plugins/canvas_click_filter.h"
 
 namespace mapviz_plugins
 {
-class MultiresView
-{
-  public:
-    MultiresView(multires_image::TileSet* tiles, QGLWidget* widget);
-    ~MultiresView(void);
+  CanvasClickFilter::CanvasClickFilter() :
+    is_mouse_down_(false),
+    max_ms_(Q_INT64_C(500)),
+    max_distance_(2.0)
+  { }
 
-    const multires_image::TileCache* Cache() { return &m_cache; }
+  void CanvasClickFilter::setMaxClickTime(qint64 max_ms)
+  {
+    max_ms_ = max_ms;
+  }
 
-    void SetView(double x, double y, double radius, double scale);
+  void CanvasClickFilter::setMaxClickMovement(qreal max_distance)
+  {
+    max_distance_ = max_distance;
+  }
 
-    void Draw();
+  bool CanvasClickFilter::eventFilter(QObject* object, QEvent* event)
+  {
+    if (event->type() == QEvent::MouseButtonPress) {
+      is_mouse_down_ = true;
+      QMouseEvent* me = static_cast<QMouseEvent*>(event);
+      mouse_down_pos_ = me->posF();
+      mouse_down_time_ = QDateTime::currentMSecsSinceEpoch();
+    }
+    else if (event->type() == QEvent::MouseButtonRelease) {
+      if (is_mouse_down_)
+      {
+        QMouseEvent* me = static_cast<QMouseEvent*>(event);
 
-    void Exit() { m_cache.Exit(); }
+        qreal distance = QLineF(mouse_down_pos_, me->posF()).length();
+        qint64 msecsDiff = QDateTime::currentMSecsSinceEpoch() - mouse_down_time_;
 
-  private:
-    multires_image::TileSet*   m_tiles;
-    multires_image::TileCache  m_cache;
-    int        m_currentLayer;
-    int        m_startRow;
-    int        m_startColumn;
-    int        m_endRow;
-    int        m_endColumn;
-
-    double min_scale_;
-  };
+        // Only fire the event if the mouse has moved less than the maximum distance
+        // and was held for shorter than the maximum time..  This prevents click
+        // events from being fired if the user is dragging the mouse across the map
+        // or just holding the cursor in place.
+        if (msecsDiff < max_ms_ && distance <= max_distance_)
+        {
+          Q_EMIT pointClicked(me->posF());
+        }
+      }
+      is_mouse_down_ = false;
+    }
+    return false;
+  }
 }
-
-#endif  // MAPVIZ_PLUGINS_MULTIRES_VIEW_H_
