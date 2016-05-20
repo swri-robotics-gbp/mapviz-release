@@ -45,6 +45,8 @@
 
 #include <cv_bridge/cv_bridge.h>
 
+#include <mapviz/select_topic_dialog.h>
+
 // Declare plugin
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_DECLARE_CLASS(
@@ -87,6 +89,7 @@ namespace mapviz_plugins
     QObject::connect(ui_.offsety, SIGNAL(valueChanged(int)), this, SLOT(SetOffsetY(int)));
     QObject::connect(ui_.width, SIGNAL(valueChanged(int)), this, SLOT(SetWidth(int)));
     QObject::connect(ui_.height, SIGNAL(valueChanged(int)), this, SLOT(SetHeight(int)));
+    QObject::connect(this,SIGNAL(VisibleChanged(bool)),this,SLOT(SetSubscription(bool)));
   }
 
   DisparityPlugin::~DisparityPlugin()
@@ -96,27 +99,21 @@ namespace mapviz_plugins
   void DisparityPlugin::SetOffsetX(int offset)
   {
     offset_x_ = offset;
-    canvas_->update();
   }
 
   void DisparityPlugin::SetOffsetY(int offset)
   {
     offset_y_ = offset;
-    canvas_->update();
   }
 
   void DisparityPlugin::SetWidth(int width)
   {
     width_ = width;
-
-    canvas_->update();
   }
 
   void DisparityPlugin::SetHeight(int height)
   {
     height_ = height;
-
-    canvas_->update();
   }
 
   void DisparityPlugin::SetAnchor(QString anchor)
@@ -157,8 +154,6 @@ namespace mapviz_plugins
     {
       anchor_ = BOTTOM_RIGHT;
     }
-
-    canvas_->update();
   }
 
   void DisparityPlugin::SetUnits(QString units)
@@ -171,39 +166,60 @@ namespace mapviz_plugins
     {
       units_ = PERCENT;
     }
-
-    canvas_->update();
   }
+  void DisparityPlugin::SetSubscription(bool visible)
+  {
+    if(topic_.empty())
+    {
+      return;
+    }
+    else if(!visible)
+    {
+      disparity_sub_.shutdown();
+      ROS_INFO("Dropped subscription to %s", topic_.c_str());
+    }
+    else
+    {
+        disparity_sub_ = node_.subscribe(topic_, 1, &DisparityPlugin::disparityCallback, this);
 
+        ROS_INFO("Subscribing to %s", topic_.c_str());
+    }
+  }
   void DisparityPlugin::SelectTopic()
   {
-    QDialog dialog;
-    Ui::topicselect ui;
-    ui.setupUi(&dialog);
+    ros::master::TopicInfo topic = mapviz::SelectTopicDialog::selectTopic(
+      "stereo_msgs/DisparityImage");
 
-    std::vector<ros::master::TopicInfo> topics;
-    ros::master::getTopics(topics);
-
-    for (unsigned int i = 0; i < topics.size(); i++)
+    if(topic.name.empty())
     {
-      if (topics[i].datatype == "stereo_msgs/DisparityImage")
-      {
-        ui.displaylist->addItem(topics[i].name.c_str());
-      }
-    }
-    ui.displaylist->setCurrentRow(0);
-
-    dialog.exec();
-
-    if (dialog.result() == QDialog::Accepted && ui.displaylist->selectedItems().count() == 1)
-    {
-      ui_.topic->setText(ui.displaylist->selectedItems().first()->text());
+      topic.name.clear();
       TopicEdited();
     }
+    if (!topic.name.empty())
+    {
+      ui_.topic->setText(QString::fromStdString(topic.name));
+      TopicEdited();
+    }
+
   }
 
   void DisparityPlugin::TopicEdited()
   {
+    if(!this->Visible())
+    {
+      PrintWarning("Topic is Hidden");
+      initialized_ = false;
+      has_message_ = false;
+      topic_ = ui_.topic->text().toStdString();
+      disparity_sub_.shutdown();
+      return;
+    }
+    if (ui_.topic->text().toStdString().empty())
+    {
+      PrintWarning("No Topic");
+      disparity_sub_.shutdown();
+      return;
+    }
     if (ui_.topic->text().toStdString() != topic_)
     {
       initialized_ = false;
@@ -270,8 +286,6 @@ namespace mapviz_plugins
     last_height_ = 0;
 
     has_image_ = true;
-
-    canvas_->update();
   }
 
   void DisparityPlugin::PrintError(const std::string& message)
@@ -437,6 +451,7 @@ namespace mapviz_plugins
       y_pos = canvas_->height() - height - y_offset;
     }
 
+    glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
     glOrtho(0, canvas_->width(), canvas_->height(), 0, -0.5f, 0.5f);
@@ -453,33 +468,53 @@ namespace mapviz_plugins
 
   void DisparityPlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
-    std::string topic;
-    node["topic"] >> topic;
-    ui_.topic->setText(topic.c_str());
+    if (node["topic"])
+    {
+      std::string topic;
+      node["topic"] >> topic;
+      ui_.topic->setText(topic.c_str());
+      TopicEdited();
+    }
 
-    TopicEdited();
+    if (node["anchor"])
+    {             
+      std::string anchor;
+      node["anchor"] >> anchor;
+      ui_.anchor->setCurrentIndex(ui_.anchor->findText(anchor.c_str()));
+      SetAnchor(anchor.c_str());
+    }
 
-    std::string anchor;
-    node["anchor"] >> anchor;
-    ui_.anchor->setCurrentIndex(ui_.anchor->findText(anchor.c_str()));
-    SetAnchor(anchor.c_str());
+    if (node["units"])
+    {
+      std::string units;
+      node["units"] >> units;
+      ui_.units->setCurrentIndex(ui_.units->findText(units.c_str()));
+      SetUnits(units.c_str());
+    }
 
-    std::string units;
-    node["units"] >> units;
-    ui_.units->setCurrentIndex(ui_.units->findText(units.c_str()));
-    SetUnits(units.c_str());
+    if (node["offset_x"])
+    {
+      node["offset_x"] >> offset_x_;
+      ui_.offsetx->setValue(offset_x_);
+    }
 
-    node["offset_x"] >> offset_x_;
-    ui_.offsetx->setValue(offset_x_);
+    if (node["offset_y"])
+    {
+      node["offset_y"] >> offset_y_;
+      ui_.offsety->setValue(offset_y_);
+    }
 
-    node["offset_y"] >> offset_y_;
-    ui_.offsety->setValue(offset_y_);
+    if (node["width"])
+    {
+      node["width"] >> width_;
+      ui_.width->setValue(width_);
+    }
 
-    node["width"] >> width_;
-    ui_.width->setValue(width_);
-
-    node["height"] >> height_;
-    ui_.height->setValue(height_);
+    if (node["height"])
+    {             
+      node["height"] >> height_;
+      ui_.height->setValue(height_);
+    }
   }
 
   void DisparityPlugin::SaveConfig(YAML::Emitter& emitter, const std::string& path)

@@ -2,18 +2,18 @@
 Changelog for package multires_image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-0.1.2 (2016-01-06)
+0.0.5 (2016-05-20)
 ------------------
-* Enables the possibility to load a one-layer tile set
-* Contributors: Vincent Rousseau
+* Add helper node to automatically add relevant multires_image display to mapviz based on a GPS message.
+* Implement service for adding and modifying mapviz displays.
+* Fix for `#339 <https://github.com/swri-robotics/mapviz/issues/339>`_; explicitly depending on OpenCV 2
+* Contributors: Marc Alban, P. J. Reed
 
-0.1.1 (2015-11-17)
+0.0.4 (2016-01-06)
 ------------------
-* Use extension from geo file
+* Uses file extension from geo file
+* Enables the possibility to load one-layer tile set
 * Contributors: Vincent Rousseau
-
-0.1.0 (2015-09-29)
-------------------
 
 0.0.3 (2015-09-28)
 ------------------

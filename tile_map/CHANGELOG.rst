@@ -2,16 +2,15 @@
 Changelog for package tile_map
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-0.1.2 (2016-01-06)
+0.0.5 (2016-05-20)
 ------------------
-
-0.1.1 (2015-11-17)
-------------------
-* Mark single argument constructors explicit.
+* Fix typo in tile map view size comparison.
 * Contributors: Marc Alban
 
-0.1.0 (2015-09-29)
+0.0.4 (2016-01-06)
 ------------------
+* Marks single argument constructors explicit.
+* Contributors: Marc Alban
 
 0.0.3 (2015-09-28)
 ------------------

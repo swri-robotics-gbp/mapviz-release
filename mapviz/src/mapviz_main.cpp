@@ -27,12 +27,13 @@
 //
 // *****************************************************************************
 
-#include "include/mapviz/mapviz.h"
+#include "mapviz/mapviz.h"
+#include "mapviz/mapviz_application.h"
 
 int main(int argc, char **argv)
 {
   // Initialize QT
-  QApplication app(argc, argv);
+  mapviz::MapvizApplication app(argc, argv);
 
   // Initialize glut (for displaying text)
   glutInit(&argc, argv);
