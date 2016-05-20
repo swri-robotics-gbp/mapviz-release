@@ -27,15 +27,17 @@
 //
 // *****************************************************************************
 
-#include <multires_image/tile_view.h>
+#include <multires_image/multires_view.h>
 
 // C++ standard libraries
 #include <cmath>
 #include <iostream>
 
-namespace multires_image
+#include <ros/ros.h>
+
+namespace mapviz_plugins
 {
-  TileView::TileView(TileSet* tiles, QGLWidget* widget) :
+  MultiresView::MultiresView(multires_image::TileSet* tiles, QGLWidget* widget) :
       m_tiles(tiles),
       m_cache(tiles, widget),
       m_currentLayer(tiles->LayerCount() - 1),
@@ -46,21 +48,26 @@ namespace multires_image
   {
     double top, left, bottom, right;
     tiles->GeoReference().GetCoordinate(0, 0, left, top);
-    tiles->GeoReference().GetCoordinate(tiles->GeoReference().Width(),tiles->GeoReference().Height(), right, bottom);
 
-    double scale_x = std::abs(right - left) / tiles->GeoReference().Width();
-    double scale_y = std::abs(top - bottom) / tiles->GeoReference().Height();
+    tiles->GeoReference().GetCoordinate(
+      tiles->GeoReference().Width(),
+      tiles->GeoReference().Height(),
+      right,
+      bottom);
+
+    double scale_x = std::fabs(right - left) / tiles->GeoReference().Width();
+    double scale_y = std::fabs(top - bottom) / tiles->GeoReference().Height();
 
     min_scale_ = scale_x;
     if (scale_y > scale_x)
       min_scale_ = scale_y;
   }
 
-  TileView::~TileView(void)
+  MultiresView::~MultiresView(void)
   {
   }
 
-  void TileView::SetView(double x, double y, double radius, double scale)
+  void MultiresView::SetView(double x, double y, double radius, double scale)
   {
     int layer = 0;
     while (min_scale_ * std::pow(2.0, layer + 1) < scale) layer++;
@@ -77,25 +84,27 @@ namespace multires_image
     int row, column;
     m_tiles->GetLayer(m_currentLayer)->GetTileIndex(x, y, row, column);
 
-    m_startRow = row - 2;
+    int size = 3;
+
+    m_startRow = row - size;
     if (m_startRow < 0)
       m_startRow = 0;
     if (m_startRow >= m_tiles->GetLayer(m_currentLayer)->RowCount())
       m_startRow = m_tiles->GetLayer(m_currentLayer)->RowCount() - 1;
 
-    m_endRow = row + 2;
+    m_endRow = row + size;
     if (m_endRow < 0)
       m_endRow = 0;
     if (m_endRow >= m_tiles->GetLayer(m_currentLayer)->RowCount())
       m_endRow = m_tiles->GetLayer(m_currentLayer)->RowCount() - 1;
 
-    m_startColumn = column - 2;
+    m_startColumn = column - size;
     if (m_startColumn < 0)
       m_startColumn = 0;
     if (m_startColumn >= m_tiles->GetLayer(m_currentLayer)->ColumnCount())
       m_startColumn = m_tiles->GetLayer(m_currentLayer)->ColumnCount() - 1;
 
-    m_endColumn = column + 2;
+    m_endColumn = column + size;
     if (m_endColumn < 0)
       m_endColumn = 0;
     if (m_endColumn >= m_tiles->GetLayer(m_currentLayer)->ColumnCount())
@@ -104,35 +113,33 @@ namespace multires_image
     m_cache.Precache(x, y);
   }
 
-  void TileView::Draw()
+  void MultiresView::Draw()
   {
     glEnable(GL_TEXTURE_2D);
 
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
     // Always draw bottom layers
-    if (m_currentLayer != m_tiles->LayerCount() - 1)
+
+    multires_image::TileSetLayer* baseLayer = m_tiles->GetLayer(m_tiles->LayerCount() - 1);
+    multires_image::Tile* tile = baseLayer->GetTile(0, 0);
+    if (tile->TextureLoaded())
     {
-      TileSetLayer* baseLayer = m_tiles->GetLayer(m_tiles->LayerCount() - 1);
-      Tile* tile = baseLayer->GetTile(0, 0);
-      if (tile->TextureLoaded())
-      {
-        tile->Draw();
-      }
-      else
-      {
-        m_cache.Load(tile);
-      }
+      tile->Draw();
+    }
+    else
+    {
+      m_cache.Load(tile);
     }
 
-    if (m_tiles->LayerCount() >= 2 && m_currentLayer != m_tiles->LayerCount() - 2)
+    if(m_tiles->LayerCount() >= 2)
     {
-      TileSetLayer* baseLayer = m_tiles->GetLayer(m_tiles->LayerCount() - 2);
+      baseLayer = m_tiles->GetLayer(m_tiles->LayerCount() - 2);
       for (int c = 0; c < baseLayer->ColumnCount(); c++)
       {
         for (int r = 0; r <  baseLayer->RowCount(); r++)
         {
-          Tile* tile = baseLayer->GetTile(c, r);
+          multires_image::Tile* tile = baseLayer->GetTile(c, r);
           if (tile->TextureLoaded())
           {
             tile->Draw();
@@ -145,21 +152,24 @@ namespace multires_image
       }
     }
 
-    TileSetLayer* layer = m_tiles->GetLayer(m_currentLayer);
-    if (m_endColumn < layer->ColumnCount() && m_endRow < layer->RowCount())
+    if (m_tiles->LayerCount() >= 2 && m_currentLayer < m_tiles->LayerCount() - 2)
     {
-      for (int c = m_startColumn; c <= m_endColumn; c++)
+      multires_image::TileSetLayer* layer = m_tiles->GetLayer(m_currentLayer);
+      if (m_endColumn < layer->ColumnCount() && m_endRow < layer->RowCount())
       {
-        for (int r = m_startRow; r <= m_endRow; r++)
+        for (int c = m_startColumn; c <= m_endColumn; c++)
         {
-          Tile* tile = layer->GetTile(c, r);
-          if (tile->TextureLoaded())
+          for (int r = m_startRow; r <= m_endRow; r++)
           {
-            tile->Draw();
-          }
-          else
-          {
-            m_cache.Load(tile);
+            multires_image::Tile* tile = layer->GetTile(c, r);
+            if (tile->TextureLoaded())
+            {
+              tile->Draw();
+            }
+            else
+            {
+              m_cache.Load(tile);
+            }
           }
         }
       }
@@ -168,4 +178,3 @@ namespace multires_image
     glDisable(GL_TEXTURE_2D);
   }
 }
-
