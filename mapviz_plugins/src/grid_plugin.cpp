@@ -34,9 +34,10 @@
 #include <vector>
 
 // QT libraries
-#include <QColorDialog>
 #include <QGLWidget>
 #include <QPalette>
+
+#include <mapviz/select_frame_dialog.h>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.h>
@@ -50,38 +51,36 @@ namespace mapviz_plugins
 {
   GridPlugin::GridPlugin() :
     config_widget_(new QWidget()),
-    color_(Qt::red),
     alpha_(1.0),
     top_left_(0, 0, 0),
     size_(1),
     rows_(1),
     columns_(1),
-    exit_(false),
     transformed_(false)
   {
     ui_.setupUi(config_widget_);
 
+    ui_.color->setColor(Qt::red);
+    
     // Set background white
     QPalette p(config_widget_->palette());
     p.setColor(QPalette::Background, Qt::white);
     config_widget_->setPalette(p);
-
-    // Initialize color selector color
-    ui_.selectcolor->setStyleSheet("background: " + color_.name() + ";");
 
     // Set status text red
     QPalette p3(ui_.status->palette());
     p3.setColor(QPalette::Text, Qt::red);
     ui_.status->setPalette(p3);
 
-    QObject::connect(ui_.selectcolor, SIGNAL(clicked()), this, SLOT(SelectColor()));
+    QObject::connect(ui_.select_frame, SIGNAL(clicked()), this, SLOT(SelectFrame()));
+    QObject::connect(ui_.frame, SIGNAL(textEdited(const QString&)), this, SLOT(FrameEdited()));
     QObject::connect(ui_.alpha, SIGNAL(valueChanged(double)), this, SLOT(SetAlpha(double)));
     QObject::connect(ui_.x, SIGNAL(valueChanged(double)), this, SLOT(SetX(double)));
     QObject::connect(ui_.y, SIGNAL(valueChanged(double)), this, SLOT(SetY(double)));
     QObject::connect(ui_.size, SIGNAL(valueChanged(double)), this, SLOT(SetSize(double)));
     QObject::connect(ui_.rows, SIGNAL(valueChanged(int)), this, SLOT(SetRows(int)));
     QObject::connect(ui_.columns, SIGNAL(valueChanged(int)), this, SLOT(SetColumns(int)));
-    QObject::connect(ui_.frame, SIGNAL(editTextChanged(QString)), this, SLOT(SetFrame(QString)));
+    connect(ui_.color, SIGNAL(colorEdited(const QColor &)), this, SLOT(DrawIcon()));
   }
 
   GridPlugin::~GridPlugin()
@@ -91,9 +90,6 @@ namespace mapviz_plugins
 
   void GridPlugin::Shutdown()
   {
-    exit_ = true;
-    QObject::disconnect(&frame_timer_, 0, 0, 0);
-    frame_timer_.stop();
   }
 
   void GridPlugin::DrawIcon()
@@ -106,7 +102,7 @@ namespace mapviz_plugins
       QPainter painter(&icon);
       painter.setRenderHint(QPainter::Antialiasing, true);
       
-      QPen pen(QColor(color_.rgb()));
+      QPen pen(QColor(ui_.color->color()));
       
       pen.setWidth(2);
       pen.setCapStyle(Qt::SquareCap);
@@ -126,10 +122,6 @@ namespace mapviz_plugins
   void GridPlugin::SetAlpha(double alpha)
   {
     alpha_ = alpha;
-    color_.setAlpha(alpha_);
-    DrawIcon();
-    if (canvas_)
-    canvas_->update();
   }
 
   void GridPlugin::SetX(double x)
@@ -167,81 +159,23 @@ namespace mapviz_plugins
     RecalculateGrid();
   }
 
-  void GridPlugin::SetFrame(QString frame)
+  void GridPlugin::SelectFrame()
   {
-    source_frame_ = frame.toStdString();
+    std::string frame = mapviz::SelectFrameDialog::selectFrame(tf_);
+    if (!frame.empty())
+    {
+      ui_.frame->setText(QString::fromStdString(frame));
+      FrameEdited();
+    }
+  }
+
+  void GridPlugin::FrameEdited()
+  {
+    source_frame_ = ui_.frame->text().toStdString();
 
     initialized_ = true;
 
     RecalculateGrid();
-
-    if (canvas_)
-    canvas_->update();
-  }
-
-  void GridPlugin::UpdateFrames()
-  {
-    if (exit_)
-      return;
-
-    std::vector<std::string> frames;
-    tf_->getFrameStrings(frames);
-
-    if (ui_.frame->count() >= 0 && 
-        static_cast<size_t>(ui_.frame->count()) == frames.size())
-    {
-      bool changed = false;
-      for (size_t i = 0; i < frames.size(); i++)
-      {
-        if (frames[i] != ui_.frame->itemText(i).toStdString())
-        {
-          changed = true;
-        }
-      }
-
-      if (!changed)
-        return;
-    }
-
-    ROS_INFO("Updating frames for grid plugin ...");
-
-    std::string current = ui_.frame->currentText().toStdString();
-
-    ui_.frame->clear();
-    for (size_t i = 0; i < frames.size(); i++)
-    {
-      ui_.frame->addItem(frames[i].c_str());
-    }
-
-    if (current != "")
-    {
-      int index = ui_.frame->findText(current.c_str());
-      if (index < 0)
-      {
-        ui_.frame->addItem(current.c_str());
-      }
-
-      index = ui_.frame->findText(current.c_str());
-      ui_.frame->setCurrentIndex(index);
-    }
-  }
-
-  void GridPlugin::SelectColor()
-  {
-    QColorDialog dialog(color_, config_widget_);
-    dialog.exec();
-
-    if (dialog.result() == QDialog::Accepted)
-    {
-      color_ = dialog.selectedColor();
-      color_.setAlpha(alpha_);
-      ui_.selectcolor->setStyleSheet("background: " + color_.name() + ";");
-
-      DrawIcon();
-
-      if (canvas_)
-      canvas_->update();
-    }
   }
 
   void GridPlugin::PrintError(const std::string& message)
@@ -291,10 +225,6 @@ namespace mapviz_plugins
   {
     canvas_ = canvas;
 
-    QObject::connect(&frame_timer_, SIGNAL(timeout()), this, SLOT(UpdateFrames()));
-
-    frame_timer_.start(1000);
-    
     DrawIcon();
 
     return true;
@@ -304,8 +234,10 @@ namespace mapviz_plugins
   {
     if (transformed_)
     {
+      QColor color = ui_.color->color();
+      
       glLineWidth(3);
-      glColor4f(color_.redF(), color_.greenF(), color_.blueF(), alpha_);
+      glColor4f(color.redF(), color.greenF(), color.blueF(), alpha_);
       glBegin(GL_LINES);
 
         std::list<tf::Point>::iterator transformed_left_it = transformed_left_points_.begin();
@@ -371,9 +303,6 @@ namespace mapviz_plugins
       right_points_.push_back(right_point);
       transformed_right_points_.push_back(transform_ * right_point);
     }
-
-    if (canvas_)
-    canvas_->update();
   }
 
   void GridPlugin::Transform()
@@ -405,47 +334,68 @@ namespace mapviz_plugins
 
   void GridPlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
-    std::string color;
-    node["color"] >> color;
-    color_ = QColor(color.c_str());
-    ui_.selectcolor->setStyleSheet("background: " + color_.name() + ";");
+    if (node["color"])
+    {            
+      std::string color;
+      node["color"] >> color;
+      ui_.color->setColor(QColor(color.c_str()));
+    }
 
-    std::string frame;
-    node["frame"] >> frame;
-    ui_.frame->setEditText(frame.c_str());
+    if (node["frame"])
+    {
+      std::string frame;
+      node["frame"] >> frame;
+      ui_.frame->setText(QString::fromStdString(frame));
+    }
 
-    float x = 0;
-    float y = 0;
-    node["x"] >> x;
-    node["y"] >> y;
+    if (node["x"])
+    {
+      float x = 0;
+      node["x"] >> x;
+      ui_.x->setValue(x);
+    }
 
-    ui_.x->setValue(x);
-    ui_.y->setValue(y);
+    if (node["y"])
+    {
+      float y = 0;
+      node["y"] >> y;
+      ui_.y->setValue(y);
+    }
 
-    node["alpha"] >> alpha_;
-    ui_.alpha->setValue(alpha_);
+    if (node["alpha"])
+    {
+      node["alpha"] >> alpha_;
+      ui_.alpha->setValue(alpha_);
+    }
 
-    node["size"] >> size_;
-    ui_.size->setValue(size_);
+    if (node["size"])
+    {
+      node["size"] >> size_;
+      ui_.size->setValue(size_);
+    }
 
-    node["rows"] >> rows_;
-    ui_.rows->setValue(rows_);
+    if (node["rows"])
+    {
+      node["rows"] >> rows_;
+      ui_.rows->setValue(rows_);
+    }
 
-    node["columns"] >> columns_;
-    ui_.columns->setValue(columns_);
+    if (node["columns"])
+    {
+      node["columns"] >> columns_;
+      ui_.columns->setValue(columns_);
+    }
 
-    if (canvas_)
-      canvas_->update();
+    FrameEdited();
   }
 
   void GridPlugin::SaveConfig(YAML::Emitter& emitter, const std::string& path)
   {
-    std::string color = color_.name().toStdString();
-    emitter << YAML::Key << "color" << YAML::Value << color;
+    emitter << YAML::Key << "color" << YAML::Value << ui_.color->color().name().toStdString();
 
     emitter << YAML::Key << "alpha" << YAML::Value << alpha_;
 
-    std::string frame = ui_.frame->currentText().toStdString();
+    std::string frame = ui_.frame->text().toStdString();
     emitter << YAML::Key << "frame" << YAML::Value << frame;
 
     emitter << YAML::Key << "x" << YAML::Value << top_left_.getX();
