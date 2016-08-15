@@ -74,7 +74,12 @@ namespace mapviz_plugins
       alpha_(1.0),
       min_value_(0.0),
       max_value_(100.0),
-      point_size_(3)
+      point_size_(3),
+      new_topic_(true),
+      has_message_(false),
+      num_of_feats_(0),
+      need_new_list_(true),
+      need_minmax_(false)
   {
     ui_.setupUi(config_widget_);
 
@@ -93,9 +98,6 @@ namespace mapviz_plugins
     ui_.max_color->setColor(Qt::black);
     // Set color transformer choices
     ui_.color_transformer->addItem(QString("Flat Color"), QVariant(0));
-    //ui_.color_transformer->removeItem();
-
-
 
     QObject::connect(ui_.selecttopic,
                      SIGNAL(clicked()),
@@ -157,6 +159,10 @@ namespace mapviz_plugins
                                 const QColor &)),
                      this,
                      SLOT(DrawIcon()));
+    QObject::connect(this,
+                     SIGNAL(TargetFrameChanged(const std::string&)),
+                     this,
+                     SLOT(ResetTransformedPointClouds()));
 
     PrintInfo("Constructed PointCloud2Plugin");
   }
@@ -196,6 +202,15 @@ namespace mapviz_plugins
       painter.drawPoint(13, 2);
 
       icon_->SetPixmap(icon);
+    }
+  }
+
+  void PointCloud2Plugin::ResetTransformedPointClouds()
+  {
+    std::deque<Scan>::iterator scan_it = scans_.begin();
+    for (; scan_it != scans_.end(); ++scan_it)
+    {
+      scan_it->transformed = false;
     }
   }
 
@@ -240,7 +255,7 @@ namespace mapviz_plugins
     if (ui_.use_rainbow->isChecked())
     {  // Hue Interpolation
 
-      int hue = val * 255;
+      int hue = (int)(val * 255.0);
       return QColor::fromHsl(hue, 255, 127, 255);
     }
     else
@@ -249,9 +264,9 @@ namespace mapviz_plugins
       const QColor max_color = ui_.max_color->color();
       // RGB Interpolation
       int red, green, blue;
-      red = val * max_color.red() + ((1.0 - val) * min_color.red());
-      green = val * max_color.green() + ((1.0 - val) * min_color.green());
-      blue = val * max_color.blue() + ((1.0 - val) * min_color.blue());
+      red = (int)(val * max_color.red() + ((1.0 - val) * min_color.red()));
+      green = (int)(val * max_color.green() + ((1.0 - val) * min_color.green()));
+      blue = (int)(val * max_color.blue() + ((1.0 - val) * min_color.blue()));
       return QColor(red, green, blue, 255);
     }
   }
@@ -271,13 +286,16 @@ namespace mapviz_plugins
 
   void PointCloud2Plugin::UpdateColors()
   {
-    std::deque<Scan>::iterator scan_it = scans_.begin();
-    for (; scan_it != scans_.end(); ++scan_it)
     {
-      std::vector<StampedPoint>::iterator point_it = scan_it->points.begin();
-      for (; point_it != scan_it->points.end(); point_it++)
+      QMutexLocker locker(&scan_mutex_);
+      std::deque<Scan>::iterator scan_it = scans_.begin();
+      for (; scan_it != scans_.end(); ++scan_it)
       {
-        point_it->color = CalculateColor(*point_it);
+        std::deque<StampedPoint>::iterator point_it = scan_it->points.begin();
+        for (; point_it != scan_it->points.end(); point_it++)
+        {
+          point_it->color = CalculateColor(*point_it);
+        }
       }
     }
     canvas_->update();
@@ -298,24 +316,32 @@ namespace mapviz_plugins
 
   void PointCloud2Plugin::TopicEdited()
   {
-    if (ui_.topic->text().toStdString() != topic_)
+    std::string topic = ui_.topic->text().trimmed().toStdString();
+    if (topic != topic_)
     {
       initialized_ = false;
-      scans_.clear();
+      {
+        QMutexLocker locker(&scan_mutex_);
+        scans_.clear();
+      }
       has_message_ = false;
-      topic_ = boost::trim_copy(ui_.topic->text().toStdString());
       PrintWarning("No messages received.");
 
-      PointCloud2_sub_.shutdown();
-      PointCloud2_sub_ = node_.subscribe(topic_,
-                                         100,
-                                         &PointCloud2Plugin::PointCloud2Callback,
-                                         this);
-      new_topic_ = true;
-      need_new_list_ = true;
-      max_.clear();
-      min_.clear();
-      ROS_INFO("Subscribing to %s", topic_.c_str());
+      pc2_sub_.shutdown();
+
+      topic_ = topic;
+      if (!topic.empty())
+      {
+        pc2_sub_ = node_.subscribe(topic_,
+                                   100,
+                                   &PointCloud2Plugin::PointCloud2Callback,
+                                   this);
+        new_topic_ = true;
+        need_new_list_ = true;
+        max_.clear();
+        min_.clear();
+        ROS_INFO("Subscribing to %s", topic_.c_str());
+      }
     }
   }
 
@@ -333,10 +359,11 @@ namespace mapviz_plugins
 
   void PointCloud2Plugin::BufferSizeChanged(int value)
   {
-    buffer_size_ = value;
+    buffer_size_ = (size_t)value;
 
     if (buffer_size_ > 0)
     {
+      QMutexLocker locker(&scan_mutex_);
       while (scans_.size() > buffer_size_)
       {
         scans_.pop_front();
@@ -348,7 +375,7 @@ namespace mapviz_plugins
 
   void PointCloud2Plugin::PointSizeChanged(int value)
   {
-    point_size_ = value;
+    point_size_ = (size_t)value;
 
     canvas_->update();
   }
@@ -406,17 +433,16 @@ namespace mapviz_plugins
 
       }
 
-
       new_topic_ = false;
       num_of_feats_ = scan.new_features.size();
 
       max_.resize(num_of_feats_);
       min_.resize(num_of_feats_);
 
-
       int label = 1;
       if (need_new_list_)
       {
+        int new_feature_index = ui_.color_transformer->currentIndex();
         std::map<std::string, Field_info>::const_iterator it;
         for (it = scan.new_features.begin(); it != scan.new_features.end(); ++it)
         {
@@ -428,16 +454,20 @@ namespace mapviz_plugins
         for (it = scan.new_features.begin(); it != scan.new_features.end(); ++it)
         {
           std::string const field = it->first;
-          char a[field.size()];
-          for (int i = 0; i <= field.size(); i++)
-          {
-            a[i] = field[i];
+          if (field == saved_color_transformer_) {
+            // The very first time we see a new set of features, that means the
+            // plugin was just created; if we have a saved value, set the current
+            // index to that and clear the saved value.
+            new_feature_index = label;
+            saved_color_transformer_ = "";
           }
-          ui_.color_transformer->addItem(QString(a), QVariant(label));
+
+          ui_.color_transformer->addItem(QString::fromStdString(field), QVariant(label));
           num_of_feats_++;
           label++;
 
         }
+        ui_.color_transformer->setCurrentIndex(new_feature_index);
         need_new_list_ = false;
       }
     }
@@ -475,12 +505,15 @@ namespace mapviz_plugins
       scan.points.push_back(point);
     }
 
-    scans_.push_back(scan);
-    if (buffer_size_ > 0)
     {
-      while (scans_.size() > buffer_size_)
+      QMutexLocker locker(&scan_mutex_);
+      scans_.push_back(scan);
+      if (buffer_size_ > 0)
       {
-        scans_.pop_front();
+        while (scans_.size() > buffer_size_)
+        {
+          scans_.pop_front();
+        }
       }
     }
     new_topic_ = true;
@@ -494,7 +527,7 @@ namespace mapviz_plugins
       case 1:
         return *reinterpret_cast<const int8_t*>(data + feature_info.offset);
       case 2:
-        return *reinterpret_cast<const uint8_t*>(data + feature_info.offset);
+        return *(data + feature_info.offset);
       case 3:
         return *reinterpret_cast<const int16_t*>(data + feature_info.offset);
       case 4:
@@ -577,21 +610,25 @@ namespace mapviz_plugins
     glBegin(GL_POINTS);
 
     std::deque<Scan>::const_iterator scan_it;
-    for (scan_it = scans_.begin(); scan_it != scans_.end(); scan_it++)
+    std::deque<StampedPoint>::const_iterator point_it;
     {
-      if (scan_it->transformed)
+      QMutexLocker locker(&scan_mutex_);
+
+      for (scan_it = scans_.begin(); scan_it != scans_.end(); scan_it++)
       {
-        std::vector<StampedPoint>::const_iterator point_it;
-        for (point_it = scan_it->points.begin(); point_it != scan_it->points.end(); ++point_it)
+        if (scan_it->transformed)
         {
-          glColor4f(
-              point_it->color.redF(),
-              point_it->color.greenF(),
-              point_it->color.blueF(),
-              alpha_);
-          glVertex2f(
-              point_it->transformed_point.getX(),
-              point_it->transformed_point.getY());
+          for (point_it = scan_it->points.begin(); point_it != scan_it->points.end(); ++point_it)
+          {
+            glColor4d(
+                point_it->color.redF(),
+                point_it->color.greenF(),
+                point_it->color.blueF(),
+                alpha_);
+            glVertex2d(
+                point_it->transformed_point.getX(),
+                point_it->transformed_point.getY());
+          }
         }
       }
     }
@@ -603,78 +640,52 @@ namespace mapviz_plugins
 
   void PointCloud2Plugin::UseRainbowChanged(int check_state)
   {
-    if (check_state == Qt::Checked)
-    {
-      ui_.max_color->setVisible(false);
-      ui_.min_color->setVisible(false);
-      ui_.maxColorLabel->setVisible(false);
-      ui_.minColorLabel->setVisible(false);
-    }
-    else
-    {
-      ui_.max_color->setVisible(true);
-      ui_.min_color->setVisible(true);
-      ui_.maxColorLabel->setVisible(true);
-      ui_.minColorLabel->setVisible(true);
-    }
+    UpdateMinMaxWidgets();
+
     UpdateColors();
   }
 
   void PointCloud2Plugin::UseAutomaxminChanged(int check_state)
   {
-    if (check_state == Qt::Checked)
-    {
-      ui_.max_color->setVisible(true);
-      ui_.min_color->setVisible(true);
-      ui_.maxColorLabel->setVisible(true);
-      ui_.minColorLabel->setVisible(true);
-      ui_.minValueLabel->setVisible(false);
-      ui_.maxValueLabel->setVisible(false);
-      ui_.minValue->setVisible(false);
-      ui_.maxValue->setVisible(false);
-
+    if (check_state == need_minmax_) {
       need_minmax_ = true;
-
     }
-    else
-    {
-      ui_.max_color->setVisible(true);
-      ui_.min_color->setVisible(true);
-      ui_.maxColorLabel->setVisible(true);
-      ui_.minColorLabel->setVisible(true);
-      ui_.minValueLabel->setVisible(true);
-      ui_.maxValueLabel->setVisible(true);
-      ui_.minValue->setVisible(true);
-      ui_.maxValue->setVisible(true);
 
-      need_minmax_ = false;
-    }
+    UpdateMinMaxWidgets();
+
     UpdateColors();
   }
 
   void PointCloud2Plugin::Transform()
   {
-    std::deque<Scan>::iterator scan_it = scans_.begin();
-    for (; scan_it != scans_.end(); ++scan_it)
     {
-      Scan& scan = *scan_it;
+      QMutexLocker locker(&scan_mutex_);
 
-      swri_transform_util::Transform transform;
+      std::deque<Scan>::iterator scan_it = scans_.begin();
       bool was_using_latest_transforms = use_latest_transforms_;
       use_latest_transforms_ = false;
-      if (GetTransform(scan.source_frame, scan.stamp, transform))
+      for (; scan_it != scans_.end(); ++scan_it)
       {
-        scan.transformed = true;
-        std::vector<StampedPoint>::iterator point_it = scan.points.begin();
-        for (; point_it != scan.points.end(); ++point_it)
+        Scan& scan = *scan_it;
+
+        if (!scan_it->transformed)
         {
-          point_it->transformed_point = transform * point_it->point;
+          swri_transform_util::Transform transform;
+          if (GetTransform(scan.source_frame, scan.stamp, transform))
+          {
+            scan.transformed = true;
+            std::deque<StampedPoint>::iterator point_it = scan.points.begin();
+            for (; point_it != scan.points.end(); ++point_it)
+            {
+              point_it->transformed_point = transform * point_it->point;
+            }
+          }
+          else
+          {
+            ROS_WARN("Unable to get transform.");
+            scan.transformed = false;
+          }
         }
-      }
-      else
-      {
-        ROS_WARN("Unable to get transform.");
-        scan.transformed = false;
       }
       use_latest_transforms_ = was_using_latest_transforms;
     }
@@ -707,6 +718,11 @@ namespace mapviz_plugins
     {
       node["buffer_size"] >> buffer_size_;
       ui_.bufferSize->setValue(buffer_size_);
+    }
+
+    if (node["color_transformer"])
+    {
+      node["color_transformer"] >> saved_color_transformer_;
     }
 
     if (node["min_color"])
@@ -767,34 +783,39 @@ namespace mapviz_plugins
   void PointCloud2Plugin::ColorTransformerChanged(int index)
   {
     ROS_DEBUG("Color transformer changed to %d", index);
-    switch (index)
-    {
-      case COLOR_FLAT:
-        ui_.min_color->setVisible(true);
-        ui_.max_color->setVisible(false);
-        ui_.maxColorLabel->setVisible(false);
-        ui_.minColorLabel->setVisible(false);
-        ui_.minValueLabel->setVisible(false);
-        ui_.maxValueLabel->setVisible(false);
-        ui_.minValue->setVisible(false);
-        ui_.maxValue->setVisible(false);
-        ui_.use_rainbow->setVisible(true);
-        ui_.use_automaxmin->setVisible(true);
-        break;
-      default:
-        ui_.min_color->setVisible(!ui_.use_rainbow->isChecked());
-        ui_.max_color->setVisible(!ui_.use_rainbow->isChecked());
-        ui_.maxColorLabel->setVisible(!ui_.use_rainbow->isChecked());
-        ui_.minColorLabel->setVisible(!ui_.use_rainbow->isChecked());
-        ui_.minValueLabel->setVisible(true);
-        ui_.maxValueLabel->setVisible(true);
-        ui_.minValue->setVisible(true);
-        ui_.maxValue->setVisible(true);
-        ui_.use_rainbow->setVisible(true);
-        ui_.use_automaxmin->setVisible(true);
-
-    }
+    UpdateMinMaxWidgets();
     UpdateColors();
+  }
+
+  void PointCloud2Plugin::UpdateMinMaxWidgets()
+  {
+    bool color_is_flat = ui_.color_transformer->currentIndex() == COLOR_FLAT;
+
+    if (color_is_flat) 
+    {
+      ui_.maxColorLabel->hide();
+      ui_.max_color->hide();
+      ui_.minColorLabel->hide();
+      ui_.min_max_color_widget->show();
+      ui_.min_max_value_widget->hide();
+      ui_.use_automaxmin->hide();
+      ui_.use_rainbow->hide();
+    }
+    else
+    {
+      ui_.maxColorLabel->show();
+      ui_.max_color->show();
+      ui_.minColorLabel->show();
+      ui_.min_max_color_widget->setVisible(!ui_.use_rainbow->isChecked());
+      ui_.min_max_value_widget->setVisible(!ui_.use_automaxmin->isChecked());
+      ui_.use_automaxmin->show();
+      ui_.use_rainbow->show();
+    }
+
+    config_widget_->updateGeometry();
+    config_widget_->adjustSize();
+
+    Q_EMIT SizeChanged();
   }
 
   /**
