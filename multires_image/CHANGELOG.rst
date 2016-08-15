@@ -2,29 +2,21 @@
 Changelog for package multires_image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-0.2.0 (2016-06-23)
+0.0.6 (2016-08-14)
 ------------------
-* Update Qt to version 5
-* Contributors: Ed Venator
 
-0.1.3 (2016-05-20)
+0.0.5 (2016-05-20)
 ------------------
+* Add helper node to automatically add relevant multires_image display to mapviz based on a GPS message.
 * Implement service for adding and modifying mapviz displays.
 * Fix for `#339 <https://github.com/swri-robotics/mapviz/issues/339>`_; explicitly depending on OpenCV 2
 * Contributors: Marc Alban, P. J. Reed
 
-0.1.2 (2016-01-06)
+0.0.4 (2016-01-06)
 ------------------
-* Enables the possibility to load a one-layer tile set
+* Uses file extension from geo file
+* Enables the possibility to load one-layer tile set
 * Contributors: Vincent Rousseau
-
-0.1.1 (2015-11-17)
-------------------
-* Use extension from geo file
-* Contributors: Vincent Rousseau
-
-0.1.0 (2015-09-29)
-------------------
 
 0.0.3 (2015-09-28)
 ------------------

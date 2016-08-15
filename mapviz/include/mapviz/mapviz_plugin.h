@@ -57,7 +57,7 @@ namespace mapviz
   class MapvizPlugin : public QObject
   {
     Q_OBJECT;
-
+    
   public:
     virtual ~MapvizPlugin() {}
 
@@ -245,6 +245,7 @@ namespace mapviz
 
     void SetIcon(IconWidget* icon) { icon_ = icon; }
 
+
     /**
      * Override this to return "true" if you want QPainter support for your
      * plugin.
@@ -256,6 +257,7 @@ namespace mapviz
 
   Q_SIGNALS:
     void DrawOrderChanged(int draw_order);
+    void SizeChanged();
     void TargetFrameChanged(const std::string& target_frame);
     void UseLatestTransformsChanged(bool use_latest_transforms);
     void VisibleChanged(bool visible);

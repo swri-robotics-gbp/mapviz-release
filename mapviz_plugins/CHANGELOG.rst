@@ -2,18 +2,41 @@
 Changelog for package mapviz_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-0.2.0 (2016-06-23)
+0.0.6 (2016-08-14)
 ------------------
-* Update Qt to version 5
-* Fixing a crash in the PointCloud2 plugin
-  Also sneaking in a few more changes:
-  - Caching transformed clouds to improve performance
-  - Properly saving the value of the "Color Transformer" combo box
-* Returning "false" if no other code handles the mouse event
-  Fixes `#360 <https://github.com/swri-robotics/mapviz/issues/360>`_
-* Contributors: Ed Venator, P. J. Reed
+* Fixes signed comparison warnings in mapviz_plugins
+* Adds a way for plugin config widgets to resize
 
-0.1.3 (2016-05-20)
+  - Adding an event plugins can emit to indicate their geometry has changed
+  - Modifying the PCL2 plugin to use it as an example
+  
+  Fixes `#393 <https://github.com/swri-robotics/mapviz/issues/393>`_
+* Sets default values for uninitialized variables
+  Resolves `#372 <https://github.com/swri-robotics/mapviz/issues/372>`_
+* Creates and implements an abstract class for drawing point paths
+  Updates gps, navsat, odometry, path, and tf_frame plugins to use the
+  abstract point drawing class.
+* Adds the draw laps functionality, which allows the user to change the color
+  of the path as it passes a base point for ease of visibility. This option
+  is implemented for the gps and odometry plugins.
+* Implements support for the ARROW marker type
+  Resolves `#365 <https://github.com/swri-robotics/mapviz/issues/365>`_
+* Ensures that Mapviz won't subscribe to empty topic names. This involved
+  cleaning up the code for handling subscriptions for all topics. The behavior
+  is now:
+  
+  - All input is trimmed before processing
+  - If a topic name is empty, the old subscriber will be shut down and will not subscribe to the empty topic
+  
+  Resolves `#327 <https://github.com/swri-robotics/mapviz/issues/327>`_
+* Fixes a crash in the PointCloud2 plugin
+* Caches transformed pointclouds to improve performance
+* PointCloud2 plugin "Color Transformer" combo box now properly saves its value
+* Return "false" if no other code handles the mouse event
+  Fixes `#360 <https://github.com/swri-robotics/mapviz/issues/360>`_
+* Contributors: Ed Venator, Marc Alban, P. J. Reed
+
+0.0.5 (2016-05-20)
 ------------------
 * Implement mapviz plug-in for calling the marti_nav_msgs::PlanRoute service.
 * Migrate route plugin to use swri_route_util
@@ -24,7 +47,8 @@ Changelog for package mapviz_plugins
   between the fixed frame and the route frame is not constant.
 * Add support for mono8 textured markers.
 * Implement service for adding and modifying mapviz displays.
-* Adding attitude indicator plugin.
+* Store and restore position and size of attitude indicator plug-in.
+* Fix grid plug-in to correctly display when loading from a config file.
 * Changing some "unsigned long"s to "size_t"s.
 * Storing source frames individually for plugins w/ buffers
 * Fix for `#265 <https://github.com/swri-robotics/mapviz/issues/265>`_; message source frames don't update
@@ -45,6 +69,11 @@ Changelog for package mapviz_plugins
 * Remove unused variable
   prev_position\_ is set, but never actually used.
 * Adds route plugin with routeposition marker attachment.
+* fixing a variable name
+* fixed hidden image/disparity startup issue & issue where mapviz would crash when image/disparity plugins subscribed to empty messages
+* Added functionality to subscribe/unsubscribe when hidden to the image plugin and the disparity plugin
+* fixed bug with projection
+* Adds attitude indicator
 * Also updating the disparity plugin
 * Fixing `#317 <https://github.com/swri-robotics/mapviz/issues/317>`_
   First, the model view matrix needs to be saved and restored around
@@ -57,27 +86,25 @@ Changelog for package mapviz_plugins
 * Declaring types for Qt signal/slot use properly
 * Fixing some typos
 * Doing GL drawing on the main thread for `#313 <https://github.com/swri-robotics/mapviz/issues/313>`_
-* GPS plugin snuck back into CMakeLists.txt
 * A plugin for displaying std_msgs/Strings
 * Marker plugin will use a QPainter to draw text
   I modified the Marker plugin so that it will use a QPainter to draw
   text labels rather than OpenGL commands.  This doesn't really add any
   functional benefit; it's meant to serve as an example of how to use
   the QPainter.
+* Making the Image plugin use image_transport.
+  The image_transport package provides support for transparently
+  subscribing and publishing to topics using low-bandwidth compressed
+  formats; if the publisher supports it, this will cause the Image
+  plugin to consume far less bandwidth than before.
 * Fixing warnings and cleaning up formatting
 * updated mapviz_plugins.xml
-* add pointcloud2 plugin
 * Update map canvas at a fixed rate.
   This update adds a timer to the map canvas to repaint at a fixed rate.
   The default rate is 50 Hz, but there is a method to change it (not
   exposed to the UI at the moment).  50Hz was chosen because it is fast
   enough to give smooth animations and we almost always are running
   mapviz with at least one plugin triggering updates from a 50Hz topic.
-* Making the Image plugin use image_transport.
-  The image_transport package provides support for transparently
-  subscribing and publishing to topics using low-bandwidth compressed
-  formats; if the publisher supports it, this will cause the Image
-  plugin to consume far less bandwidth than before.
 * Handle cases where marker topic changes message types.
   This commit makes a better effort to properly support cases where a
   marker topic changes between Marker and MarkerArray during runtime.
@@ -113,30 +140,19 @@ Changelog for package mapviz_plugins
   - Topics sorted by name
   - User can filter topics by substring
   - Continuously checks the master for new topics while the dialog is open.
-* Contributors: Elliot Johnson, Jerry Towler, Marc Alban, Nicholas Alton, P. J. Reed
+* Contributors: Edward Venator, Elliot Johnson, Jerry Towler, Marc Alban, Nicholas Alton, P. J. Reed
 
-0.1.2 (2016-01-06)
+0.0.4 (2016-01-06)
 ------------------
-* Enables the possibility to load a one-layer tile set
+* Fixes bad package names in includes.
+* Backports navsat plug-in from jade.
 * Sorts topic, plug-in, and frame lists in selection dialogs.
 * Fixes tf plug-in update.
-* Contributors: Marc Alban, Vincent Rousseau
-
-0.1.1 (2015-11-17)
-------------------
-* Extensions for geo files (PR `#262 <https://github.com/swri-robotics/mapviz/issues/262>`_)
-* Adds a plugin to visualize laser scans.
-  Display features are based on the laserscan plugin for rviz:
+* Adds a plugin to visualize laser scans based on the laserscan plugin for rviz:
   * Points can be colored by range, or x/y/z axis
   * Points can be colored by interpolation between two colors or rainbow coloring
-* Adds a plugin to visualize sensor_msgs/NavSatFix msgs, based on the old GPSFix plugin
-* Contributors: Claudio Bandera, Ed Venator, Vincent Rousseau
-
-0.1.0 (2015-09-29)
-------------------
-* Removes gps plugin, since gps_common is not in ROS Jade. See issue 
-  `#238 <https://github.com/swri-robotics/mapviz/issues/238>`_.
-* Contributors: Edward Venator
+* Enables the possibility to load one layer tile set
+* Contributors: Edward Venator, Marc Alban, P. J. Reed, Vincent Rousseau
 
 0.0.3 (2015-09-28)
 ------------------

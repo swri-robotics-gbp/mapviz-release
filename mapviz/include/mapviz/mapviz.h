@@ -79,7 +79,7 @@ namespace mapviz
     Q_OBJECT
 
   public:
-    Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent = 0, Qt::WindowFlags flags = 0);
+    Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent = 0, Qt::WFlags flags = 0);
     ~Mapviz();
 
     void Initialize();
@@ -114,6 +114,7 @@ namespace mapviz
     void SelectBackgroundColor(const QColor &color);
     void SetCaptureDirectory();
     void Hover(double x, double y, double scale);
+    void Recenter();
 
   protected:
     Ui::mapviz ui_;
@@ -129,6 +130,7 @@ namespace mapviz
     QWidget* spacer1_;
     QWidget* spacer2_;
     QWidget* spacer3_;
+    QPushButton* recenter_button_;
     QPushButton* rec_button_;
     QPushButton* stop_button_;
     QPushButton* screenshot_button_;
