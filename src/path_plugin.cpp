@@ -69,7 +69,7 @@ namespace mapviz_plugins
     connect(ui_.selecttopic, SIGNAL(clicked()), this, SLOT(SelectTopic()));
     connect(ui_.topic, SIGNAL(editingFinished()), this, SLOT(TopicEdited()));
     connect(ui_.path_color, SIGNAL(colorEdited(const QColor&)), this,
-            SLOT(DrawIcon()));
+            SLOT(SetColor(const QColor&)));
   }
 
   PathPlugin::~PathPlugin()
@@ -110,7 +110,7 @@ namespace mapviz_plugins
     }
   }
 
-  void PathPlugin::pathCallback(const nav_msgs::PathConstPtr path)
+  void PathPlugin::pathCallback(const nav_msgs::PathConstPtr& path)
   {
     if (!has_message_)
     {
@@ -135,7 +135,9 @@ namespace mapviz_plugins
   void PathPlugin::PrintError(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
+    {
       return;
+    }
 
     ROS_ERROR("Error: %s", message.c_str());
     QPalette p(ui_.status->palette());
@@ -147,7 +149,9 @@ namespace mapviz_plugins
   void PathPlugin::PrintInfo(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
+    {
       return;
+    }
 
     ROS_INFO("%s", message.c_str());
     QPalette p(ui_.status->palette());
@@ -159,7 +163,9 @@ namespace mapviz_plugins
   void PathPlugin::PrintWarning(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
+    {
       return;
+    }
 
     ROS_WARN("%s", message.c_str());
     QPalette p(ui_.status->palette());
@@ -184,15 +190,16 @@ namespace mapviz_plugins
 
   void PathPlugin::Draw(double x, double y, double scale)
   {
-    bool lines, points;
-    lines = points = false;
-    color_ = ui_.path_color->color();
+    bool lines;
+    bool points;
+    QColor old_color = ui_.path_color->color();
     draw_style_ = LINES;
-    lines = DrawPoints();
+    lines = DrawPoints(scale);
     color_ = color_.dark(200);
     draw_style_ = POINTS;
-    points = DrawPoints();
-    if (lines == true && points == true)
+    points = DrawPoints(scale);
+    color_ = old_color;
+    if (lines && points)
     {
       PrintInfo("OK");
     }
@@ -212,7 +219,8 @@ namespace mapviz_plugins
     {
       std::string color;
       node["color"] >> color;
-      ui_.path_color->setColor(QColor(color.c_str()));
+      SetColor(QColor(color.c_str()));
+      ui_.path_color->setColor(color_);
     }
   }
 

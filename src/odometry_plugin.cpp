@@ -83,8 +83,12 @@ namespace mapviz_plugins
                      SLOT(BufferSizeChanged(int)));
     QObject::connect(ui_.drawstyle, SIGNAL(activated(QString)), this,
                      SLOT(SetDrawStyle(QString)));
+    QObject::connect(ui_.static_arrow_sizes, SIGNAL(clicked(bool)),
+                     this, SLOT(SetStaticArrowSizes(bool)));
+    QObject::connect(ui_.arrow_size, SIGNAL(valueChanged(int)),
+                     this, SLOT(SetArrowSize(int)));
     connect(ui_.color, SIGNAL(colorEdited(const QColor&)), this,
-            SLOT(DrawIcon()));
+            SLOT(SetColor(const QColor&)));
   }
 
   OdometryPlugin::~OdometryPlugin()
@@ -206,34 +210,12 @@ namespace mapviz_plugins
     }
   }
 
-  void OdometryPlugin::PositionToleranceChanged(double value)
-  {
-    position_tolerance_ = value;
-  }
-
-  void OdometryPlugin::BufferSizeChanged(int value)
-  {
-    if (!lap_checked_)
-    {
-      buffer_size_ = value;
-      if (buffer_size_ > 0)
-      {
-        while (static_cast<int>(points_.size()) > buffer_size_)
-        {
-          points_.pop_front();
-        }
-      }
-    }
-    else
-    {
-      buffer_holder_ = value;
-    }
-  }
-
   void OdometryPlugin::PrintError(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
+    {
       return;
+    }
 
     ROS_ERROR("Error: %s", message.c_str());
     QPalette p(ui_.status->palette());
@@ -245,7 +227,9 @@ namespace mapviz_plugins
   void OdometryPlugin::PrintInfo(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
+    {
       return;
+    }
 
     ROS_INFO("%s", message.c_str());
     QPalette p(ui_.status->palette());
@@ -257,7 +241,9 @@ namespace mapviz_plugins
   void OdometryPlugin::PrintWarning(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
+    {
       return;
+    }
 
     ROS_WARN("%s", message.c_str());
     QPalette p(ui_.status->palette());
@@ -276,21 +262,18 @@ namespace mapviz_plugins
   bool OdometryPlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
-    color_ = ui_.color->color();
-    DrawIcon();
+    SetColor(ui_.color->color());
 
     return true;
   }
 
   void OdometryPlugin::Draw(double x, double y, double scale)
   {
-    color_ = ui_.color->color();
-
     if (ui_.show_covariance->isChecked())
     {
       DrawCovariance();
     }
-    if (DrawPoints())
+    if (DrawPoints(scale))
     {
       PrintInfo("OK");
     }
@@ -306,11 +289,11 @@ namespace mapviz_plugins
 
       for (uint32_t i = 0; i < cur_point_.transformed_cov_points.size(); i++)
       {
-        glVertex2f(cur_point_.transformed_cov_points[i].getX(),
+        glVertex2d(cur_point_.transformed_cov_points[i].getX(),
                    cur_point_.transformed_cov_points[i].getY());
       }
 
-      glVertex2f(cur_point_.transformed_cov_points.front().getX(),
+      glVertex2d(cur_point_.transformed_cov_points.front().getX(),
                  cur_point_.transformed_cov_points.front().getY());
 
       glEnd();
@@ -331,7 +314,8 @@ namespace mapviz_plugins
     {
       std::string color;
       node["color"] >> color;
-      ui_.color->setColor(QColor(color.c_str()));
+      SetColor(QColor(color.c_str()));
+      ui_.color->setColor(color_);
     }
 
     if (node["draw_style"])
@@ -368,17 +352,29 @@ namespace mapviz_plugins
       ui_.buffersize->setValue(buffer_size_);
     }
 
-    if (swri_yaml_util::FindValue(node, "show_covariance"))
+    if (node["show_covariance"])
     {
       bool show_covariance = false;
       node["show_covariance"] >> show_covariance;
       ui_.show_covariance->setChecked(show_covariance);
     }
-    if (swri_yaml_util::FindValue(node, "show_laps"))
+    if (node["show_laps"])
     {
       bool show_laps = false;
       node["show_laps"] >> show_laps;
       ui_.show_laps->setChecked(show_laps);
+    }
+
+    if (node["static_arrow_sizes"])
+    {
+      bool static_arrow_sizes = node["static_arrow_sizes"].as<bool>();
+      ui_.static_arrow_sizes->setChecked(static_arrow_sizes);
+      SetStaticArrowSizes(static_arrow_sizes);
+    }
+
+    if (node["arrow_size"])
+    {
+      ui_.arrow_size->setValue(node["arrow_size"].as<int>());
     }
 
     TopicEdited();
@@ -411,5 +407,9 @@ namespace mapviz_plugins
 
     bool show_covariance = ui_.show_covariance->isChecked();
     emitter << YAML::Key << "show_covariance" << YAML::Value << show_covariance;
+
+    emitter << YAML::Key << "static_arrow_sizes" << YAML::Value << ui_.static_arrow_sizes->isChecked();
+
+    emitter << YAML::Key << "arrow_size" << YAML::Value << ui_.arrow_size->value();
   }
 }
