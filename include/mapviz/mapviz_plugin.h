@@ -237,14 +237,14 @@ namespace mapviz
 
     virtual QWidget* GetConfigWidget(QWidget* parent) { return NULL; }
 
-    virtual void DrawIcon() {}
-
     virtual void PrintError(const std::string& message) = 0;
     virtual void PrintInfo(const std::string& message) = 0;
     virtual void PrintWarning(const std::string& message) = 0;
 
     void SetIcon(IconWidget* icon) { icon_ = icon; }
 
+  public Q_SLOTS:
+    virtual void DrawIcon() {}
 
     /**
      * Override this to return "true" if you want QPainter support for your
@@ -261,7 +261,7 @@ namespace mapviz
     void TargetFrameChanged(const std::string& target_frame);
     void UseLatestTransformsChanged(bool use_latest_transforms);
     void VisibleChanged(bool visible);
-    
+
 
   protected:
     bool initialized_;
