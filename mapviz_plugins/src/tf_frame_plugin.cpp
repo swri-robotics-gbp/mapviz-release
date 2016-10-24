@@ -78,8 +78,12 @@ namespace mapviz_plugins
                      SLOT(BufferSizeChanged(int)));
     QObject::connect(ui_.drawstyle, SIGNAL(activated(QString)), this,
                      SLOT(SetDrawStyle(QString)));
+    QObject::connect(ui_.static_arrow_sizes, SIGNAL(clicked(bool)),
+                     this, SLOT(SetStaticArrowSizes(bool)));
+    QObject::connect(ui_.arrow_size, SIGNAL(valueChanged(int)),
+                     this, SLOT(SetArrowSize(int)));
     connect(ui_.color, SIGNAL(colorEdited(const QColor&)), this,
-            SLOT(DrawIcon()));
+            SLOT(SetColor(const QColor&)));
   }
 
   TfFramePlugin::~TfFramePlugin()
@@ -104,24 +108,6 @@ namespace mapviz_plugins
     ROS_INFO("Setting target frame to to %s", source_frame_.c_str());
 
     initialized_ = true;
-  }
-
-  void TfFramePlugin::PositionToleranceChanged(double value)
-  {
-    position_tolerance_ = value;
-  }
-
-  void TfFramePlugin::BufferSizeChanged(int value)
-  {
-    buffer_size_ = value;
-
-    if (buffer_size_ > 0)
-    {
-      while (static_cast<int>(points_.size()) > buffer_size_)
-      {
-        points_.pop_front();
-      }
-    }
   }
 
   void TfFramePlugin::TimerCallback(const ros::TimerEvent& event)
@@ -160,7 +146,9 @@ namespace mapviz_plugins
   void TfFramePlugin::PrintError(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
+    {
       return;
+    }
 
     ROS_ERROR("Error: %s", message.c_str());
     QPalette p(ui_.status->palette());
@@ -172,7 +160,9 @@ namespace mapviz_plugins
   void TfFramePlugin::PrintInfo(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
+    {
       return;
+    }
 
     ROS_INFO("%s", message.c_str());
     QPalette p(ui_.status->palette());
@@ -184,7 +174,9 @@ namespace mapviz_plugins
   void TfFramePlugin::PrintWarning(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
+    {
       return;
+    }
 
     ROS_WARN("%s", message.c_str());
     QPalette p(ui_.status->palette());
@@ -207,15 +199,14 @@ namespace mapviz_plugins
     timer_ = node_.createTimer(ros::Duration(0.1),
                                &TfFramePlugin::TimerCallback, this);
 
-    DrawIcon();
+    SetColor(ui_.color->color());
 
     return true;
   }
 
   void TfFramePlugin::Draw(double x, double y, double scale)
   {
-    color_ = ui_.color->color();
-    if (DrawPoints())
+    if (DrawPoints(scale))
     {
       PrintInfo("OK");
     }
@@ -233,7 +224,8 @@ namespace mapviz_plugins
     {
       std::string color;
       node["color"] >> color;
-      ui_.color->setColor(QColor(color.c_str()));
+      SetColor(QColor(color.c_str()));
+      ui_.color->setColor(color_);
     }
 
     if (node["draw_style"])
@@ -265,6 +257,18 @@ namespace mapviz_plugins
       ui_.buffersize->setValue(buffer_size_);
     }
 
+    if (node["static_arrow_sizes"])
+    {
+      bool static_arrow_sizes = node["static_arrow_sizes"].as<bool>();
+      ui_.static_arrow_sizes->setChecked(static_arrow_sizes);
+      SetStaticArrowSizes(static_arrow_sizes);
+    }
+
+    if (node["arrow_size"])
+    {
+      ui_.arrow_size->setValue(node["arrow_size"].as<int>());
+    }
+
     FrameEdited();
   }
 
@@ -283,5 +287,9 @@ namespace mapviz_plugins
                YAML::Value << position_tolerance_;
 
     emitter << YAML::Key << "buffer_size" << YAML::Value << buffer_size_;
+
+    emitter << YAML::Key << "static_arrow_sizes" << YAML::Value << ui_.static_arrow_sizes->isChecked();
+
+    emitter << YAML::Key << "arrow_size" << YAML::Value << ui_.arrow_size->value();
   }
 }
