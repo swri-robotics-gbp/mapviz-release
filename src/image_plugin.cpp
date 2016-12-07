@@ -62,6 +62,7 @@ namespace mapviz_plugins
     offset_y_(0),
     width_(320),
     height_(240),
+    transport_("default"),
     has_image_(false),
     last_width_(0),
     last_height_(0)
@@ -87,6 +88,8 @@ namespace mapviz_plugins
     QObject::connect(ui_.width, SIGNAL(valueChanged(int)), this, SLOT(SetWidth(int)));
     QObject::connect(ui_.height, SIGNAL(valueChanged(int)), this, SLOT(SetHeight(int)));
     QObject::connect(this,SIGNAL(VisibleChanged(bool)),this,SLOT(SetSubscription(bool)));
+    QObject::connect(ui_.transport_combo_box, SIGNAL(activated(const QString&)),
+                     this, SLOT(SetTransport(const QString&)));
   }
 
   ImagePlugin::~ImagePlugin()
@@ -177,10 +180,26 @@ namespace mapviz_plugins
     }
     else
     {
-        image_transport::ImageTransport it(node_);
-        image_sub_ = it.subscribe(topic_, 1, &ImagePlugin::imageCallback, this);
+      image_transport::ImageTransport it(local_node_);
+      image_sub_ = it.subscribe(topic_, 1, &ImagePlugin::imageCallback, this);
 
-        ROS_INFO("Subscribing to %s", topic_.c_str());
+      ROS_INFO("Subscribing to %s", topic_.c_str());
+    }
+  }
+
+  void ImagePlugin::SetTransport(const QString& transport)
+  {
+    ROS_INFO("Changing image_transport to %s.", transport.toStdString().c_str());
+    transport_ = transport;
+    TopicEdited();
+  }
+
+  void ImagePlugin::Resubscribe()
+  {
+    if (transport_ == QString::fromStdString("default"))
+    {
+      force_resubscribe_ = true;
+      TopicEdited();
     }
   }
 
@@ -189,14 +208,14 @@ namespace mapviz_plugins
     ros::master::TopicInfo topic = mapviz::SelectTopicDialog::selectTopic(
       "sensor_msgs/Image");
 
-
     if(topic.name.empty())
     {
       topic.name.clear();
       TopicEdited();
 
     }
-    if (!topic.name.empty()) {
+    if (!topic.name.empty())
+    {
       ui_.topic->setText(QString::fromStdString(topic.name));
       TopicEdited();
     }
@@ -204,34 +223,57 @@ namespace mapviz_plugins
 
   void ImagePlugin::TopicEdited()
   {
-
+    std::string topic = ui_.topic->text().trimmed().toStdString();
     if(!this->Visible())
     {
       PrintWarning("Topic is Hidden");
       initialized_ = false;
       has_message_ = false;
-      topic_ = ui_.topic->text().toStdString();
+      if (!topic.empty())
+      {
+        topic_ = topic;
+      }
       image_sub_.shutdown();
       return;
     }
-    if (ui_.topic->text().toStdString().empty())
+    // Re-subscribe if either the topic or the image transport
+    // have changed.
+    if (force_resubscribe_ ||
+        topic != topic_ ||
+        image_sub_.getTransport() != transport_.toStdString())
     {
-      PrintWarning("No topic");
-      image_sub_.shutdown();
-      return;
-    }
-    if (ui_.topic->text().toStdString() != topic_)
-    {
+      force_resubscribe_ = false;
       initialized_ = false;
       has_message_ = false;
-      topic_ = ui_.topic->text().toStdString();
+      topic_ = topic;
       PrintWarning("No messages received.");
 
       image_sub_.shutdown();
-      image_transport::ImageTransport it(node_);
-      image_sub_ = it.subscribe(topic_, 1, &ImagePlugin::imageCallback, this);
 
-      ROS_INFO("Subscribing to %s", topic_.c_str());
+      if (!topic_.empty())
+      {
+        boost::shared_ptr<image_transport::ImageTransport> it;
+        if (transport_ == QString::fromStdString("default"))
+        {
+          ROS_DEBUG("Using default transport.");
+          it = boost::make_shared<image_transport::ImageTransport>(node_);
+          image_sub_ = it->subscribe(topic_, 1, &ImagePlugin::imageCallback, this);
+        }
+        else
+        {
+          ROS_DEBUG("Setting transport to %s on %s.",
+                   transport_.toStdString().c_str(), local_node_.getNamespace().c_str());
+
+          local_node_.setParam("image_transport", transport_.toStdString());
+          it = boost::make_shared<image_transport::ImageTransport>(local_node_);
+          image_sub_ = it->subscribe(topic_, 1, &ImagePlugin::imageCallback, this,
+                                     image_transport::TransportHints(transport_.toStdString(),
+                                                                     ros::TransportHints(),
+                                                                     local_node_));
+        }
+
+        ROS_INFO("Subscribing to %s", topic_.c_str());
+      }
     }
   }
 
@@ -264,7 +306,9 @@ namespace mapviz_plugins
   void ImagePlugin::PrintError(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
+    {
       return;
+    }
 
     ROS_ERROR("Error: %s", message.c_str());
     QPalette p(ui_.status->palette());
@@ -276,7 +320,9 @@ namespace mapviz_plugins
   void ImagePlugin::PrintInfo(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
+    {
       return;
+    }
 
     ROS_INFO("%s", message.c_str());
     QPalette p(ui_.status->palette());
@@ -288,7 +334,9 @@ namespace mapviz_plugins
   void ImagePlugin::PrintWarning(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
+    {
       return;
+    }
 
     ROS_WARN("%s", message.c_str());
     QPalette p(ui_.status->palette());
@@ -311,23 +359,24 @@ namespace mapviz_plugins
     return true;
   }
 
-  void ImagePlugin::ScaleImage(int width, int height)
+  void ImagePlugin::ScaleImage(double width, double height)
   {
     if (!has_image_)
+    {
       return;
+    }
 
-    cv::resize(cv_image_->image, scaled_image_, cvSize(width, height), 0, 0, CV_INTER_AREA);
+    cv::resize(cv_image_->image, scaled_image_, cvSize2D32f(width, height), 0, 0, CV_INTER_AREA);
   }
 
   void ImagePlugin::DrawIplImage(cv::Mat *image)
   {
     // TODO(malban) glTexture2D may be more efficient than glDrawPixels
 
-    if (image == NULL)
+    if (image == NULL || image->cols == 0 || image->rows == 0)
+    {
       return;
-
-    if (image->cols == 0 || image->rows == 0)
-      return;
+    }
 
     GLenum format;
     switch (image->channels())
@@ -345,7 +394,7 @@ namespace mapviz_plugins
         return;
     }
 
-    glPixelZoom(1.0, -1.0);
+    glPixelZoom(1.0f, -1.0f);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glDrawPixels(image->cols, image->rows, format, GL_UNSIGNED_BYTE, image->ptr());
 
@@ -355,10 +404,10 @@ namespace mapviz_plugins
   void ImagePlugin::Draw(double x, double y, double scale)
   {
     // Calculate the correct offsets and dimensions
-    int x_offset = offset_x_;
-    int y_offset = offset_y_;
-    int width = width_;
-    int height = height_;
+    double x_offset = offset_x_;
+    double y_offset = offset_y_;
+    double width = width_;
+    double height = height_;
     if (units_ == PERCENT)
     {
       x_offset = offset_x_ * canvas_->width() / 100.0;
@@ -374,8 +423,8 @@ namespace mapviz_plugins
     }
 
     // Calculate the correct render position
-    int x_pos = 0;
-    int y_pos = 0;
+    double x_pos = 0;
+    double y_pos = 0;
     if (anchor_ == TOP_LEFT)
     {
       x_pos = x_offset;
@@ -427,7 +476,7 @@ namespace mapviz_plugins
     glLoadIdentity();
     glOrtho(0, canvas_->width(), canvas_->height(), 0, -0.5f, 0.5f);
 
-    glRasterPos2f(x_pos, y_pos);
+    glRasterPos2d(x_pos, y_pos);
 
     DrawIplImage(&scaled_image_);
 
@@ -439,6 +488,26 @@ namespace mapviz_plugins
 
   void ImagePlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
+    // Note that image_transport should be loaded before the
+    // topic to make sure the transport is set appropriately before we
+    // subscribe.
+    if (node["image_transport"])
+    {
+      std::string transport;
+      node["image_transport"] >> transport;
+      transport_ = QString::fromStdString(transport);
+      int index = ui_.transport_combo_box->findText(transport_);
+      if (index != -1)
+      {
+        ui_.transport_combo_box->setCurrentIndex(index);
+      }
+      else
+      {
+        ROS_WARN("Saved image transport %s is unavailable.",
+                 transport_.toStdString().c_str());
+      }
+    }
+
     if (node["topic"])
     {
       std::string topic;
@@ -497,6 +566,7 @@ namespace mapviz_plugins
     emitter << YAML::Key << "offset_y" << YAML::Value << offset_y_;
     emitter << YAML::Key << "width" << YAML::Value << width_;
     emitter << YAML::Key << "height" << YAML::Value << height_;
+    emitter << YAML::Key << "image_transport" << YAML::Value << transport_.toStdString();
   }
 
   std::string ImagePlugin::AnchorToString(Anchor anchor)
@@ -557,6 +627,34 @@ namespace mapviz_plugins
     }
 
     return units_string;
+  }
+
+  void ImagePlugin::CreateLocalNode()
+  {
+    // This is the same way ROS generates anonymous node names.
+    // See http://docs.ros.org/api/roscpp/html/this__node_8cpp_source.html
+    // Giving each image plugin a unique node means that we can control
+    // its image transport individually.
+    char buf[200];
+    snprintf(buf, sizeof(buf), "image_%llu", (unsigned long long)ros::WallTime::now().toNSec());
+    local_node_ = ros::NodeHandle(node_, buf);
+  }
+
+  void ImagePlugin::SetNode(const ros::NodeHandle& node)
+  {
+    node_ = node;
+
+    // As soon as we have a node, we can find the available image transports
+    // and add them to our combo box.
+    image_transport::ImageTransport it(node_);
+    std::vector<std::string> transports = it.getLoadableTransports();
+    Q_FOREACH (const std::string& transport, transports)
+    {
+      QString qtransport = QString::fromStdString(transport).replace("image_transport/", "");
+      ui_.transport_combo_box->addItem(qtransport);
+    }
+
+    CreateLocalNode();
   }
 }
 
