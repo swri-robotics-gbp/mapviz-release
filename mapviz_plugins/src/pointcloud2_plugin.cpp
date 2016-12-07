@@ -74,7 +74,12 @@ namespace mapviz_plugins
       alpha_(1.0),
       min_value_(0.0),
       max_value_(100.0),
-      point_size_(3)
+      point_size_(3),
+      new_topic_(true),
+      has_message_(false),
+      num_of_feats_(0),
+      need_new_list_(true),
+      need_minmax_(false)
   {
     ui_.setupUi(config_widget_);
 
@@ -212,7 +217,7 @@ namespace mapviz_plugins
   QColor PointCloud2Plugin::CalculateColor(const StampedPoint& point)
   {
     double val;
-    unsigned int color_transformer = ui_.color_transformer->currentIndex();
+    unsigned int color_transformer = static_cast<unsigned int>(ui_.color_transformer->currentIndex());
     if (num_of_feats_ > 0 && color_transformer > 0)
     {
       val = point.features[color_transformer - 1];
@@ -268,7 +273,7 @@ namespace mapviz_plugins
 
   inline int32_t findChannelIndex(const sensor_msgs::PointCloud2ConstPtr& cloud, const std::string& channel)
   {
-    for (int32_t i = 0; i < cloud->fields.size(); ++i)
+    for (int32_t i = 0; static_cast<size_t>(i) < cloud->fields.size(); ++i)
     {
       if (cloud->fields[i].name == channel)
       {
@@ -311,7 +316,8 @@ namespace mapviz_plugins
 
   void PointCloud2Plugin::TopicEdited()
   {
-    if (ui_.topic->text().toStdString() != topic_)
+    std::string topic = ui_.topic->text().trimmed().toStdString();
+    if (topic != topic_)
     {
       initialized_ = false;
       {
@@ -319,19 +325,23 @@ namespace mapviz_plugins
         scans_.clear();
       }
       has_message_ = false;
-      topic_ = boost::trim_copy(ui_.topic->text().toStdString());
       PrintWarning("No messages received.");
 
       pc2_sub_.shutdown();
-      pc2_sub_ = node_.subscribe(topic_,
-                                 100,
-                                 &PointCloud2Plugin::PointCloud2Callback,
-                                 this);
-      new_topic_ = true;
-      need_new_list_ = true;
-      max_.clear();
-      min_.clear();
-      ROS_INFO("Subscribing to %s", topic_.c_str());
+
+      topic_ = topic;
+      if (!topic.empty())
+      {
+        pc2_sub_ = node_.subscribe(topic_,
+                                   100,
+                                   &PointCloud2Plugin::PointCloud2Callback,
+                                   this);
+        new_topic_ = true;
+        need_new_list_ = true;
+        max_.clear();
+        min_.clear();
+        ROS_INFO("Subscribing to %s", topic_.c_str());
+      }
     }
   }
 
@@ -412,14 +422,14 @@ namespace mapviz_plugins
 
       for (size_t i = 0; i < msg->fields.size(); ++i)
       {
-        Field_info input;
+        FieldInfo input;
         std::string name = msg->fields[i].name;
 
         uint32_t offset_value = msg->fields[i].offset;
         uint8_t datatype_value = msg->fields[i].datatype;
         input.offset = offset_value;
-        input.datatype_ = datatype_value;
-        scan.new_features.insert(std::pair<std::string, Field_info>(name, input));
+        input.datatype = datatype_value;
+        scan.new_features.insert(std::pair<std::string, FieldInfo>(name, input));
 
       }
 
@@ -433,10 +443,10 @@ namespace mapviz_plugins
       if (need_new_list_)
       {
         int new_feature_index = ui_.color_transformer->currentIndex();
-        std::map<std::string, Field_info>::const_iterator it;
+        std::map<std::string, FieldInfo>::const_iterator it;
         for (it = scan.new_features.begin(); it != scan.new_features.end(); ++it)
         {
-          ui_.color_transformer->removeItem(num_of_feats_);
+          ui_.color_transformer->removeItem(static_cast<int>(num_of_feats_));
           num_of_feats_--;
 
         }
@@ -444,7 +454,8 @@ namespace mapviz_plugins
         for (it = scan.new_features.begin(); it != scan.new_features.end(); ++it)
         {
           std::string const field = it->first;
-          if (field == saved_color_transformer_) {
+          if (field == saved_color_transformer_)
+          {
             // The very first time we see a new set of features, that means the
             // plugin was just created; if we have a saved value, set the current
             // index to that and clear the saved value.
@@ -478,7 +489,7 @@ namespace mapviz_plugins
       point.point = tf::Point(x, y, z);
       point.features.resize(scan.new_features.size());
       int count = 0;
-      std::map<std::string, Field_info>::const_iterator it;
+      std::map<std::string, FieldInfo>::const_iterator it;
       for (it = scan.new_features.begin(); it != scan.new_features.end(); ++it)
       {
         point.features[count] = PointFeature(ptr, (it->second));
@@ -510,9 +521,9 @@ namespace mapviz_plugins
     canvas_->update();
   }
 
-  double PointCloud2Plugin::PointFeature(const uint8_t* data, const Field_info& feature_info)
+  double PointCloud2Plugin::PointFeature(const uint8_t* data, const FieldInfo& feature_info)
   {
-    switch (feature_info.datatype_)
+    switch (feature_info.datatype)
     {
       case 1:
         return *reinterpret_cast<const int8_t*>(data + feature_info.offset);
@@ -531,7 +542,7 @@ namespace mapviz_plugins
       case 8:
         return *reinterpret_cast<const double*>(data + feature_info.offset);
       default:
-        ROS_WARN("Unknown data type in point: %d", feature_info.datatype_);
+        ROS_WARN("Unknown data type in point: %d", feature_info.datatype);
         return 0.0;
     }
   }
@@ -630,52 +641,20 @@ namespace mapviz_plugins
 
   void PointCloud2Plugin::UseRainbowChanged(int check_state)
   {
-    if (check_state == Qt::Checked)
-    {
-      ui_.max_color->setVisible(false);
-      ui_.min_color->setVisible(false);
-      ui_.maxColorLabel->setVisible(false);
-      ui_.minColorLabel->setVisible(false);
-    }
-    else
-    {
-      ui_.max_color->setVisible(true);
-      ui_.min_color->setVisible(true);
-      ui_.maxColorLabel->setVisible(true);
-      ui_.minColorLabel->setVisible(true);
-    }
+    UpdateMinMaxWidgets();
+
     UpdateColors();
   }
 
   void PointCloud2Plugin::UseAutomaxminChanged(int check_state)
   {
-    if (check_state == Qt::Checked)
+    if (check_state == need_minmax_)
     {
-      ui_.max_color->setVisible(true);
-      ui_.min_color->setVisible(true);
-      ui_.maxColorLabel->setVisible(true);
-      ui_.minColorLabel->setVisible(true);
-      ui_.minValueLabel->setVisible(false);
-      ui_.maxValueLabel->setVisible(false);
-      ui_.minValue->setVisible(false);
-      ui_.maxValue->setVisible(false);
-
       need_minmax_ = true;
-
     }
-    else
-    {
-      ui_.max_color->setVisible(true);
-      ui_.min_color->setVisible(true);
-      ui_.maxColorLabel->setVisible(true);
-      ui_.minColorLabel->setVisible(true);
-      ui_.minValueLabel->setVisible(true);
-      ui_.maxValueLabel->setVisible(true);
-      ui_.minValue->setVisible(true);
-      ui_.maxValue->setVisible(true);
 
-      need_minmax_ = false;
-    }
+    UpdateMinMaxWidgets();
+
     UpdateColors();
   }
 
@@ -734,13 +713,13 @@ namespace mapviz_plugins
     if (node["size"])
     {
       node["size"] >> point_size_;
-      ui_.pointSize->setValue(point_size_);
+      ui_.pointSize->setValue(static_cast<int>(point_size_));
     }
 
     if (node["buffer_size"])
     {
       node["buffer_size"] >> buffer_size_;
-      ui_.bufferSize->setValue(buffer_size_);
+      ui_.bufferSize->setValue(static_cast<int>(buffer_size_));
     }
 
     if (node["color_transformer"])
@@ -806,33 +785,39 @@ namespace mapviz_plugins
   void PointCloud2Plugin::ColorTransformerChanged(int index)
   {
     ROS_DEBUG("Color transformer changed to %d", index);
-    switch (index)
-    {
-      case COLOR_FLAT:
-        ui_.min_color->setVisible(true);
-        ui_.max_color->setVisible(false);
-        ui_.maxColorLabel->setVisible(false);
-        ui_.minColorLabel->setVisible(false);
-        ui_.minValueLabel->setVisible(false);
-        ui_.maxValueLabel->setVisible(false);
-        ui_.minValue->setVisible(false);
-        ui_.maxValue->setVisible(false);
-        ui_.use_rainbow->setVisible(true);
-        ui_.use_automaxmin->setVisible(true);
-        break;
-      default:
-        ui_.min_color->setVisible(!ui_.use_rainbow->isChecked());
-        ui_.max_color->setVisible(!ui_.use_rainbow->isChecked());
-        ui_.maxColorLabel->setVisible(!ui_.use_rainbow->isChecked());
-        ui_.minColorLabel->setVisible(!ui_.use_rainbow->isChecked());
-        ui_.minValueLabel->setVisible(true);
-        ui_.maxValueLabel->setVisible(true);
-        ui_.minValue->setVisible(true);
-        ui_.maxValue->setVisible(true);
-        ui_.use_rainbow->setVisible(true);
-        ui_.use_automaxmin->setVisible(true);
-    }
+    UpdateMinMaxWidgets();
     UpdateColors();
+  }
+
+  void PointCloud2Plugin::UpdateMinMaxWidgets()
+  {
+    bool color_is_flat = ui_.color_transformer->currentIndex() == COLOR_FLAT;
+
+    if (color_is_flat) 
+    {
+      ui_.maxColorLabel->hide();
+      ui_.max_color->hide();
+      ui_.minColorLabel->hide();
+      ui_.min_max_color_widget->show();
+      ui_.min_max_value_widget->hide();
+      ui_.use_automaxmin->hide();
+      ui_.use_rainbow->hide();
+    }
+    else
+    {
+      ui_.maxColorLabel->show();
+      ui_.max_color->show();
+      ui_.minColorLabel->show();
+      ui_.min_max_color_widget->setVisible(!ui_.use_rainbow->isChecked());
+      ui_.min_max_value_widget->setVisible(!ui_.use_automaxmin->isChecked());
+      ui_.use_automaxmin->show();
+      ui_.use_rainbow->show();
+    }
+
+    config_widget_->updateGeometry();
+    config_widget_->adjustSize();
+
+    Q_EMIT SizeChanged();
   }
 
   /**

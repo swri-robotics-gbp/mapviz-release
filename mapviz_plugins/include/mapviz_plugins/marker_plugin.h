@@ -80,7 +80,8 @@ namespace mapviz_plugins
 
     QWidget* GetConfigWidget(QWidget* parent);
 
-    bool SupportsPainting() {
+    bool SupportsPainting()
+    {
       return true;
     }
 
@@ -98,7 +99,15 @@ namespace mapviz_plugins
     struct StampedPoint
     {
       tf::Point point;
+      tf::Quaternion orientation;
+
       tf::Point transformed_point;
+
+      tf::Point arrow_point;
+      tf::Point transformed_arrow_point;
+      tf::Point transformed_arrow_left;
+      tf::Point transformed_arrow_right;
+
       QColor color;
     };
 
@@ -117,7 +126,7 @@ namespace mapviz_plugins
       float scale_y;
       float scale_z;
 
-      std::string source_frame_;
+      std::string source_frame;
       swri_transform_util::Transform local_transform;
       
       bool transformed;
@@ -137,6 +146,8 @@ namespace mapviz_plugins
     void handleMessage(const topic_tools::ShapeShifter::ConstPtr& msg);
     void handleMarker(const visualization_msgs::Marker &marker);
     void handleMarkerArray(const visualization_msgs::MarkerArray &markers);
+    void transformArrow(MarkerData& markerData,
+                        const swri_transform_util::Transform& transform);
   };
 }
 
