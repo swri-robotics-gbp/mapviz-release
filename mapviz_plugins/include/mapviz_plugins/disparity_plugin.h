@@ -104,7 +104,6 @@ namespace mapviz_plugins
     void SetOffsetY(int offset);
     void SetWidth(int width);
     void SetHeight(int height);
-    void SetSubscription(bool visible);
 
   private:
     Ui::disparity_config ui_;

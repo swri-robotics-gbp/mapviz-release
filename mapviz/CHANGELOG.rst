@@ -2,7 +2,12 @@
 Changelog for package mapviz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-0.0.7 (2016-10-23)
+0.2.2 (2016-12-07)
+------------------
+* Migrated OpenCV to 3.1 (default in Kinetic)
+* Contributors: Brian Holt
+
+0.2.1 (2016-10-23)
 ------------------
 * Add a GUI for controlling the Image Transport (`#432 <https://github.com/swri-robotics/mapviz/issues/432>`_)
   This will add a sub-menu under the "View" menu that will:
@@ -14,48 +19,64 @@ Changelog for package mapviz
   In addition, the image plugin now has a menu that can be used to change the
   transport for that specific plugin so that it is different from the default.
   Fixes `#430 <https://github.com/swri-robotics/mapviz/issues/430>`_
+  Conflicts:
+  mapviz/package.xml
 * Fix icon colors for point drawing plugins (`#433 <https://github.com/swri-robotics/mapviz/issues/433>`_)
   This was probably broken back when all of these were refactored to have a
   single base class.  It looks like the member variable that holds the color
   used to draw the icon was never actually being updated.
   Fixes `#426 <https://github.com/swri-robotics/mapviz/issues/426>`_
-* Contributors: P. J. Reed
-
-0.0.6 (2016-08-14)
-------------------
-* Fixes several reorder and signed comparison warnings in the mapviz
+* Remove unnecessary include
+* Fix warnings in mapviz.
+  Fix several reorder and signed comparison warnings in the mapviz
   package.
-* Adds a dialog for selecting services by type
+* Giving `tile_map` an interface overhaul
+  MapQuest has turned off their public API for map tiles, so this plugin needed some work.  I have:
+  - Removed the MapQuest sources
+  - Made the interface for adding new sources more powerful
+  - Overhauled how sources are saved and loaded under the hood
+  - Added a button to reset the current tile cache
+  Resolves `#402 <https://github.com/swri-robotics/mapviz/issues/402>`_
+  Conflicts:
+  tile_map/CMakeLists.txt
+* Adding a dialog for selecting services by type
   This dialog is similar to the ones for listing topics or TF frames, but it is
   a little different under the hood.  Notably:
-  
   - It relies on the rosapi node in order to be able to search for services
   - Since searching is done via a service call, ROS communication is handled
-    on a separate thread that will not block the GUI
+  on a separate thread that will not block the GUI
   - Unlike topics, only searching for a single service type is supported
-
-* Adds a way for plugin config widgets to resize and modifies the PCL2 plugin
-  as an example of this behavior.
+  Conflicts:
+  mapviz/package.xml
+* Adding a way for plugin config widgets to resize
+  - Adding an event plugins can emit to indicate their geometry has changed
+  - Modifying the PCL2 plugin to use it as an example
   Fixes `#393 <https://github.com/swri-robotics/mapviz/issues/393>`_
-* Adds  an icon on the right side of Mapviz's status bar tthat will reset
+* Adding a button to reset the location and zoom level
+  This adds an icon on the right side of Mapviz's status bar tthat will reset
   the view to the default zoom level and center it on the origin of the target
   frame.
   Resolves `#371 <https://github.com/swri-robotics/mapviz/issues/371>`_
-* The MapvizPlugin class now emits signals when any of the following settings change:
+* Contributors: Ed Venator, Marc Alban, P. J. Reed
 
+0.2.0 (2016-06-23)
+------------------
+* Update mapviz to qt5
+* Adding a Q_OBJECT declaration to MapvizPlugin
+* Adding signals for various plugin events
+  The MapvizPlugin class will now emit signals when any of the following settings change:
   - Draw Order
   - Target Frame
   - Use Latest Transforms
   - Visibility
-  
   Note that the signals will only be emitted if the setting actually *changes*, not
   if it is somehow set to the same value that it was previously.
-* Contributors: Ed Venator, Edward Venator, Marc Alban, P. J. Reed
+* Contributors: Ed Venator, P. J. Reed
 
-0.0.5 (2016-05-20)
+0.1.3 (2016-05-20)
 ------------------
 * Implement mapviz plug-in for calling the marti_nav_msgs::PlanRoute service.
-* Adding an explicit dependency on pkg-config to package.xml (`#354 <https://github.com/swri-robotics/mapviz/issues/354>`_)
+* Adding an explicit dependency on pkg-config to package.xml (`#355 <https://github.com/swri-robotics/mapviz/issues/355>`_)
 * Add _gencpp dependency to mapviz targets.
   This commit adds the _gencpp target to mapviz targets to ensure that
   the AddMapvizDisplay service is built before the targets.
@@ -91,15 +112,15 @@ Changelog for package mapviz
   the explicit calls in many locations are unnecessary.  It was also
   possible for it to be called in some of these locations from a
   non-main thread, which is invalid and could cause crashes.
-* Enabling anti-aliasing for QPainter drawing
 * Adding the ability to toggle anti-aliasing
   Now there's a checkbox under the "View" menu that will toggle whether
   anti-aliasing is applied to the canvas.  In some situations this will
   make the display look much prettier at a slight performance cost.
 * Cleaning up documentation.
-* Plugins can now draw using a QPainter
+* Merging QPainter/anti-aliasing fixes into jade-devel
   This is the same as the old version of this change, except updated
   to the most recent version of Mapviz.
+* Fixing a compile error
 * Fix for `#298 <https://github.com/swri-robotics/mapviz/issues/298>`_; right-click + drag will now zoom
 * Update map canvas at a fixed rate.
   This update adds a timer to the map canvas to repaint at a fixed rate.
@@ -115,16 +136,16 @@ Changelog for package mapviz
   use to filter the frames to a specific substring.
 * Fixing an issue that could cause the click publisher plugin's publisher to not be initialized after it's first added.
 * Adding a plugin that, when a user clicks on a point, will publish that point's coordinates to a topic.
-* Remove debugging messages from SelectFrameDialog.
-  These were accidentally left in during initial development.
 * Adding color button widget and updating plugins.
   This commit adds a subclass of QPushButton called ColorButton that
   implements a widget for displaying and selecting colors.  We've been
   doing this manually everywhere with duplicated code.  This is a simple
   abstraction but allows us to elminate a lot of duplication, especially
   in plugins that have multiple color selections.
+* Remove debugging messages from SelectFrameDialog.
+  These were accidentally left in during initial development.
 * Add documentation for the SelectTopicDialog.
-* Adds SelectTopicDialog to mapviz.
+* Adds SelecTopicDialog to mapviz.
   This commit adds the SelectTopicDialog that can be used in plugins to
   provide the user with a dialog to select topics.  Typically we have
   done this with a lot of duplicated code across all the plugins.  This
@@ -139,14 +160,21 @@ Changelog for package mapviz
   - Continuously checks the master for new topics while the dialog is open.
 * Contributors: Elliot Johnson, Marc Alban, P. J. Reed
 
-0.0.4 (2016-01-06)
+0.1.2 (2016-01-06)
 ------------------
 * Show full path when recording screenshots/movies.
 * Fixes a bug in plug-in sorting.
 * Sorts topic, plug-in, and frame lists in selection dialogs.
-* Fixes mapviz launch file frame parameter
+* Contributors: Elliot Johnson, Marc Alban
+
+0.1.1 (2015-11-17)
+------------------
+* Fixes mapviz launch file frame param
 * Marks single argument constructors explicit.
-* Contributors: Edward Venator, Elliot Johnson, Marc Alban, Vincent Rousseau
+* Contributors: Edward Venator, Marc Alban, Vincent Rousseau
+
+0.1.0 (2015-09-29)
+------------------
 
 0.0.3 (2015-09-28)
 ------------------

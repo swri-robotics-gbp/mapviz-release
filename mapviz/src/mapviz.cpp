@@ -44,11 +44,14 @@
 #include <boost/filesystem.hpp>
 #include <boost/make_shared.hpp>
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+// OpenCV libraries
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/videoio.hpp>
 
 // QT libraries
-#include <QtGui/QApplication>
+#include <QtWidgets/QApplication>
 #include <QFileDialog>
 #include <QActionGroup>
 #include <QColorDialog>
@@ -73,7 +76,7 @@ const QString Mapviz::ROS_WORKSPACE_VAR = "ROS_WORKSPACE";
 const QString Mapviz::MAPVIZ_CONFIG_FILE = "/.mapviz_config";
 const std::string Mapviz::IMAGE_TRANSPORT_PARAM = "image_transport";
 
-Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::WFlags flags) :
+Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::WindowFlags flags) :
     QMainWindow(parent, flags),
     xy_pos_label_(new QLabel("fixed: 0.0,0.0")),
     lat_lon_pos_label_(new QLabel("lat/lon: 0.0,0.0")),
