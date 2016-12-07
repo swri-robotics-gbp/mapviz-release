@@ -2,6 +2,14 @@
 Changelog for package multires_image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.2.2 (2016-12-07)
+------------------
+* Migrated OpenCV to 3.1 (default in Kinetic)
+* Contributors: Brian Holt
+
+0.2.1 (2016-10-23)
+------------------
+
 0.2.0 (2016-06-23)
 ------------------
 * Update Qt to version 5
