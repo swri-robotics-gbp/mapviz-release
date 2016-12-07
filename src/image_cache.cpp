@@ -47,7 +47,9 @@ namespace tile_map
     return left->Priority() > right->Priority();
   }
 
-  Image::Image(const std::string& uri, size_t uri_hash, uint64_t priority) :
+  const int Image::MAXIMUM_FAILURES = 5;
+
+  Image::Image(const QString& uri, size_t uri_hash, uint64_t priority) :
     uri_(uri),
     uri_hash_(uri_hash),
     loading_(false),
@@ -74,17 +76,19 @@ namespace tile_map
   void Image::AddFailure()
   {
     failures_++;
-    failed_ = failures_ > 2;
+    failed_ = failures_ > MAXIMUM_FAILURES;
   }
+
+  const int ImageCache::MAXIMUM_NETWORK_REQUESTS = 6;
 
   ImageCache::ImageCache(const QString& cache_dir, size_t size) :
     network_manager_(this),
     cache_dir_(cache_dir),
     cache_(size),
     exit_(false),
-    pending_(0),
     tick_(0),
-    cache_thread_(new CacheThread(this))
+    cache_thread_(new CacheThread(this)),
+    network_request_semaphore_(MAXIMUM_NETWORK_REQUESTS)
   {
     QNetworkDiskCache* disk_cache = new QNetworkDiskCache(this);
     disk_cache->setCacheDirectory(cache_dir_);
@@ -99,12 +103,22 @@ namespace tile_map
   
   ImageCache::~ImageCache()
   {
+    // After setting our exit flag to true, release any conditions the cache thread
+    // might be waiting on so that it will exit.
     exit_ = true;
+    cache_thread_->notify();
+    network_request_semaphore_.release(MAXIMUM_NETWORK_REQUESTS);
     cache_thread_->wait();
     delete cache_thread_;
   }
 
-  ImagePtr ImageCache::GetImage(size_t uri_hash, const std::string& uri, int32_t priority)
+  void ImageCache::Clear()
+  {
+    cache_.clear();
+    network_manager_.cache()->clear();
+  }
+
+  ImagePtr ImageCache::GetImage(size_t uri_hash, const QString& uri, int32_t priority)
   {
     ImagePtr image;
     
@@ -118,7 +132,7 @@ namespace tile_map
       image = *image_ptr;
       if (!cache_.insert(uri_hash, image_ptr))
       {
-        ROS_ERROR("FAILED TO CREATE HANDLE: %s", uri.c_str());
+        ROS_ERROR("FAILED TO CREATE HANDLE: %s", uri.toStdString().c_str());
         image_ptr = 0;
       }
     }
@@ -139,13 +153,27 @@ namespace tile_map
       {
         if (!unprocessed_.contains(uri_hash))
         {
+          // Set an image's starting priority so that it's higher than the
+          // starting priority of every other image we've requested so
+          // far; that ensures that, all other things being equal, the
+          // most recently requested images will be loaded first.
           image->SetPriority(tick_++);
           unprocessed_[uri_hash] = image;
+          uri_to_hash_map_[uri] = uri_hash;
+          cache_thread_->notify();
+        }
+        else
+        {
+          // Every time an image is requested but hasn't been loaded yet,
+          // increase its priority.  Tiles within the visible area will
+          // be requested more frequently, so this will make them load faster
+          // than tiles the user can't see.
+          image->IncreasePriority();
         }
       }
       else
       {
-        ROS_ERROR("To many failures for image: %s", uri.c_str());
+        ROS_ERROR("To many failures for image: %s", uri.toStdString().c_str());
       }
     }
 
@@ -160,21 +188,26 @@ namespace tile_map
     request.setUrl(QUrl(uri));
     request.setRawHeader("User-Agent", "mapviz-1.0");
     request.setAttribute(
-    QNetworkRequest::CacheLoadControlAttribute,
-    QNetworkRequest::PreferCache);
-        
+        QNetworkRequest::CacheLoadControlAttribute,
+        QNetworkRequest::PreferCache);
+    request.setAttribute(
+        QNetworkRequest::HttpPipeliningAllowedAttribute,
+        true);
+
+    ROS_INFO("Trying to get %s", uri.toStdString().c_str());
     QNetworkReply *reply = network_manager_.get(request);
-    connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(NetworkError(QNetworkReply::NetworkError)));
+    connect(reply, SIGNAL(error(QNetworkReply::NetworkError)),
+            this, SLOT(NetworkError(QNetworkReply::NetworkError)));
   } 
   
   void ImageCache::ProcessReply(QNetworkReply* reply)
   {
-    std::string url = reply->url().toString().toStdString();
-    size_t hash = hash_function_(url);
+    QString url = reply->url().toString();
     
     ImagePtr image;
     unprocessed_mutex_.lock();
-    
+
+    size_t hash = uri_to_hash_map_[url];
     image = unprocessed_[hash];
     if (image)
     {
@@ -184,33 +217,29 @@ namespace tile_map
         image->InitializeImage();
         if (!image->GetImage()->loadFromData(data))
         {
-          ROS_ERROR("FAILED TO CREATE IMAGE FROM REPLY: %s", url.c_str());
+          ROS_ERROR("FAILED TO CREATE IMAGE FROM REPLY: %s", url.toStdString().c_str());
           image->ClearImage();
           image->AddFailure();
         }
       }
       else
       {
-        ROS_ERROR("============ AN ERROR OCCURRED ==============: %s", url.c_str());
+        ROS_ERROR("============ AN ERROR OCCURRED ==============: %s", url.toStdString().c_str());
         image->AddFailure();
       }
     }
     
     unprocessed_.remove(hash);
+    uri_to_hash_map_.remove(url);
     if (image)
     {
       image->SetLoading(false);
     }
-    
-    pending_--;
-    
+    network_request_semaphore_.release();
+
     unprocessed_mutex_.unlock();
     
     reply->deleteLater();
-    
-    
-    
-    // Condition variable?
   }
   
   void ImageCache::NetworkError(QNetworkReply::NetworkError error)
@@ -218,24 +247,47 @@ namespace tile_map
     ROS_ERROR("NETWORK ERROR");
     // TODO add failure
   }
+
+  const int CacheThread::MAXIMUM_SEQUENTIAL_REQUESTS = 12;
+
+  CacheThread::CacheThread(ImageCache* parent) :
+    p(parent),
+    waiting_mutex_()
+  {
+    waiting_mutex_.lock();
+  }
+
+  void CacheThread::notify()
+  {
+    waiting_mutex_.unlock();
+  }
   
   void CacheThread::run()
   {    
     while (!p->exit_)
     {
-      // TODO: Condition variable to wait for pending < 6 ?
-      
+      // Wait until we're told there are images we need to request.
+      waiting_mutex_.lock();
+
+      // Next, get all of them and sort them by priority.
       p->unprocessed_mutex_.lock();
-      
       QList<ImagePtr> images = p->unprocessed_.values();
-      
       p->unprocessed_mutex_.unlock();
-      
+
       qSort(images.begin(), images.end(), ComparePriority);
-    
-      int32_t count = 0;
-      while (p->pending_ < 6 && !images.empty() && count < 12)
+
+      // Go through all of them and request them.  Qt's network manager will
+      // only handle six simultaneous requests at once, so we use a semaphore
+      // to limit ourselves to that many.
+      // Each individual image will release the semaphore when it is done loading.
+      // Also, only load up to a certain number at a time in this loop.  If there
+      // are more left afterward, we'll start over.  This ensures that we
+      // concentrate on processing the highest-priority images.
+      int count = 0;
+      while (!p->exit_ && !images.empty() && count < MAXIMUM_SEQUENTIAL_REQUESTS)
       {
+        p->network_request_semaphore_.acquire();
+
         ImagePtr image = images.front();
         p->unprocessed_mutex_.lock();
         if (!image->Loading())
@@ -243,29 +295,20 @@ namespace tile_map
           image->SetLoading(true);
           images.pop_front();
         
-          Q_EMIT RequestImage(QString::fromStdString(image->Uri()));
-        
-          p->pending_++;
-          count++;
+          Q_EMIT RequestImage(image->Uri());
         }
         else
         {
           images.pop_front();
         }
         p->unprocessed_mutex_.unlock();
+
+        count++;
       }
-      
-      p->unprocessed_mutex_.lock();
-      // Remove the oldest images from the unprocessed list.
-      while (images.size() > 100)
+      if (!images.empty())
       {
-        ImagePtr image = images.back();
-        images.pop_back();
-        p->unprocessed_.remove(image->UriHash());
+        waiting_mutex_.unlock();
       }
-      p->unprocessed_mutex_.unlock();
-    
-      usleep(1000);
     }
   }
 }
