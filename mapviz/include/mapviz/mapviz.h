@@ -44,6 +44,7 @@
 // QT libraries
 #include <QtGui/QtGui>
 #include <QDialog>
+#include <QMenu>
 #include <QTimer>
 #include <QString>
 #include <QShowEvent>
@@ -105,6 +106,8 @@ namespace mapviz
     void ToggleEnableAntialiasing(bool on);
     void ToggleShowPlugin(QListWidgetItem* item, bool visible);
     void ToggleRecord(bool on);
+    void SetImageTransport(QAction* transport_action);
+    void UpdateImageTransportMenu();
     void CaptureVideoFrame();
     void StopRecord();
     void Screenshot();
@@ -114,9 +117,15 @@ namespace mapviz
     void SelectBackgroundColor(const QColor &color);
     void SetCaptureDirectory();
     void Hover(double x, double y, double scale);
+    void Recenter();
+
+  Q_SIGNALS:
+    void ImageTransportChanged();
 
   protected:
     Ui::mapviz ui_;
+
+    QMenu* image_transport_menu_;
 
     QTimer frame_timer_;
     QTimer spin_timer_;
@@ -129,6 +138,7 @@ namespace mapviz
     QWidget* spacer1_;
     QWidget* spacer2_;
     QWidget* spacer3_;
+    QPushButton* recenter_button_;
     QPushButton* rec_button_;
     QPushButton* stop_button_;
     QPushButton* screenshot_button_;
@@ -180,6 +190,7 @@ namespace mapviz
 
     static const QString ROS_WORKSPACE_VAR;
     static const QString MAPVIZ_CONFIG_FILE;
+    static const std::string IMAGE_TRANSPORT_PARAM;
   };
 }
 
