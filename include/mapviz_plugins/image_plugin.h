@@ -71,7 +71,8 @@ namespace mapviz_plugins
       CENTER_RIGHT,
       BOTTOM_LEFT,
       BOTTOM_CENTER,
-      BOTTOM_RIGHT};
+      BOTTOM_RIGHT
+    };
 
     enum Units {PIXELS, PERCENT};
 
@@ -82,6 +83,9 @@ namespace mapviz_plugins
     void Shutdown() {}
 
     void Draw(double x, double y, double scale);
+
+    void CreateLocalNode();
+    virtual void SetNode(const ros::NodeHandle& node);
 
     void Transform() {}
 
@@ -95,6 +99,9 @@ namespace mapviz_plugins
     void PrintInfo(const std::string& message);
     void PrintWarning(const std::string& message);
 
+  public Q_SLOTS:
+    void Resubscribe();
+
   protected Q_SLOTS:
     void SelectTopic();
     void TopicEdited();
@@ -105,6 +112,7 @@ namespace mapviz_plugins
     void SetWidth(int width);
     void SetHeight(int height);
     void SetSubscription(bool visible);
+    void SetTransport(const QString& transport);
 
   private:
     Ui::image_config ui_;
@@ -117,12 +125,15 @@ namespace mapviz_plugins
     int offset_y_;
     int width_;
     int height_;
+    QString transport_;
 
+    bool force_resubscribe_;
     bool has_image_;
 
-    int last_width_;
-    int last_height_;
+    double last_width_;
+    double last_height_;
 
+    ros::NodeHandle local_node_;
     image_transport::Subscriber image_sub_;
     bool has_message_;
 
@@ -133,7 +144,7 @@ namespace mapviz_plugins
 
     void imageCallback(const sensor_msgs::ImageConstPtr& image);
 
-    void ScaleImage(int width, int height);
+    void ScaleImage(double width, double height);
     void DrawIplImage(cv::Mat *image);
 
     std::string AnchorToString(Anchor anchor);
