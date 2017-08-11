@@ -73,6 +73,8 @@
 #include <mapviz/mapviz_plugin.h>
 #include <mapviz/map_canvas.h>
 
+#include "stopwatch.h"
+
 namespace mapviz
 {
   class Mapviz : public QMainWindow
@@ -80,7 +82,7 @@ namespace mapviz
     Q_OBJECT
 
   public:
-    Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent = 0, Qt::WindowFlags flags = 0);
+    Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent = 0, Qt::WFlags flags = 0);
     ~Mapviz();
 
     void Initialize();
@@ -118,6 +120,7 @@ namespace mapviz
     void SetCaptureDirectory();
     void Hover(double x, double y, double scale);
     void Recenter();
+    void HandleProfileTimer();
 
   Q_SIGNALS:
     void ImageTransportChanged();
@@ -131,6 +134,7 @@ namespace mapviz
     QTimer spin_timer_;
     QTimer save_timer_;
     QTimer record_timer_;
+    QTimer profile_timer_;
 
     QLabel* xy_pos_label_;
     QLabel* lat_lon_pos_label_;
@@ -167,6 +171,8 @@ namespace mapviz
     pluginlib::ClassLoader<MapvizPlugin>* loader_;
     MapCanvas* canvas_;
     std::map<QListWidgetItem*, MapvizPluginPtr> plugins_;
+
+    Stopwatch meas_spin_;
 
     void Open(const std::string& filename);
     void Save(const std::string& filename);

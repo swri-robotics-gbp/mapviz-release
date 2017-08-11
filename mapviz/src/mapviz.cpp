@@ -44,14 +44,11 @@
 #include <boost/filesystem.hpp>
 #include <boost/make_shared.hpp>
 
-// OpenCV libraries
-#include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/videoio.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 // QT libraries
-#include <QtWidgets/QApplication>
+#include <QtGui/QApplication>
 #include <QFileDialog>
 #include <QActionGroup>
 #include <QColorDialog>
@@ -76,7 +73,7 @@ const QString Mapviz::ROS_WORKSPACE_VAR = "ROS_WORKSPACE";
 const QString Mapviz::MAPVIZ_CONFIG_FILE = "/.mapviz_config";
 const std::string Mapviz::IMAGE_TRANSPORT_PARAM = "image_transport";
 
-Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::WindowFlags flags) :
+Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::WFlags flags) :
     QMainWindow(parent, flags),
     xy_pos_label_(new QLabel("fixed: 0.0,0.0")),
     lat_lon_pos_label_(new QLabel("lat/lon: 0.0,0.0")),
@@ -273,16 +270,30 @@ void Mapviz::Initialize()
     std::string config;
     priv.param("config", config, default_path.toStdString());
 
+    bool auto_save;
+    priv.param("auto_save_backup", auto_save, true);
+
     Open(config);
 
     UpdateFrames();
     frame_timer_.start(1000);
     connect(&frame_timer_, SIGNAL(timeout()), this, SLOT(UpdateFrames()));
 
-    save_timer_.start(10000);
-    connect(&save_timer_, SIGNAL(timeout()), this, SLOT(AutoSave()));
+    if (auto_save)
+    {
+      save_timer_.start(10000);
+      connect(&save_timer_, SIGNAL(timeout()), this, SLOT(AutoSave()));
+    }
     
     connect(&record_timer_, SIGNAL(timeout()), this, SLOT(CaptureVideoFrame()));
+
+    bool print_profile_data;
+    priv.param("print_profile_data", print_profile_data, false);
+    if (print_profile_data)
+    {
+      profile_timer_.start(2000);
+      connect(&profile_timer_, SIGNAL(timeout()), this, SLOT(HandleProfileTimer()));
+    }
 
     initialized_ = true;
   }
@@ -292,7 +303,9 @@ void Mapviz::SpinOnce()
 {
   if (ros::ok())
   {
+    meas_spin_.start();
     ros::spinOnce();
+    meas_spin_.stop();
   }
   else
   {
@@ -1462,6 +1475,20 @@ void Mapviz::SetCaptureDirectory()
   if (dialog.result() == QDialog::Accepted && dialog.selectedFiles().count() == 1)
   {
     capture_directory_ = dialog.selectedFiles().first().toStdString();
+  }
+}
+
+void Mapviz::HandleProfileTimer()
+{
+  ROS_INFO("Mapviz Profiling Data");
+  meas_spin_.printInfo("ROS SpinOnce()");
+  for (auto& display: plugins_)
+  {
+    MapvizPluginPtr plugin = display.second;
+    if (plugin)
+    {
+      plugin->PrintMeasurements();
+    }
   }
 }
 }

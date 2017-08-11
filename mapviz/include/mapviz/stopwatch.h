@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2017, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,86 +26,87 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // *****************************************************************************
+#pragma once
 
-#include <mapviz/config_item.h>
-
-#include <QInputDialog>
+#include <ros/time.h>
+#include <ros/console.h>
 
 namespace mapviz
 {
-  ConfigItem::ConfigItem(QWidget *parent, Qt::WFlags flags) :
-    QWidget(parent, flags),
-    item_(0),
-    visible_(true)
+/* This class measures the wall time of an interval and keeps track of
+ * the number of intervals, the average duration, and the maximum
+ * duration.  This is used to provide some simple measurements to keep
+ * an eye on performance.
+ */
+class Stopwatch
+{
+ public:
+  Stopwatch()
+    :
+    count_(0)
   {
-    ui_.setupUi(this);
   }
 
-  ConfigItem::~ConfigItem()
+  /* Start measuring a new time interval. */
+  void start()
   {
+    start_ = ros::WallTime::now();
   }
 
-  void ConfigItem::ToggleDraw(bool toggled)
+  /* End the current time interval and update the measurements.
+   * Behavior is undefined if start() was not called prior to this.
+   */
+  void stop()
   {
-    if (visible_ != toggled)
+    ros::WallDuration dt = ros::WallTime::now() - start_;
+    count_ += 1;
+    total_time_ += dt;
+    max_time_ = std::max(max_time_, dt);
+  }
+
+  /* Return the number of intervals measured. */
+  int count() const { return count_; }
+
+  /* Returns the longest observed duration. */
+  ros::WallDuration maxTime() const { return max_time_; }
+
+  /* Returns the average duration spent in the interval. */
+  ros::WallDuration avgTime() const
+  {
+    if (count_)
     {
-      visible_ = toggled;      
-      if (ui_.show->isChecked() != toggled)
-      {
-        ui_.show->setChecked(toggled);
-      }
-      
-      Q_EMIT ToggledDraw(item_, toggled);
-    }
-  }
-
-  void ConfigItem::SetName(QString name)
-  {
-    name_ = name;
-    ui_.namelabel->setText(type_ + " (" + name_ + ")");
-  }
-
-  void ConfigItem::SetType(QString type)
-  {
-    type_ = type;
-    ui_.namelabel->setText(type_ + " (" + name_ + ")");
-  }
-
-  void ConfigItem::SetWidget(QWidget* widget)
-  {
-    ui_.label->hide();
-    ui_.content_layout->addWidget(widget);
-  }
-
-  void ConfigItem::EditName()
-  {
-    bool ok;
-    QString text = QInputDialog::getText(
-      this, 
-      tr("Set Display name"),
-      tr(""), 
-      QLineEdit::Normal,
-      name_, &ok);
-     
-    if (ok && !text.isEmpty())
-    {
-      SetName(text);
-    }
-  }
-
-  void ConfigItem::Hide()
-  {
-    if (!ui_.content->isHidden())
-    {
-      ui_.content->hide();
-      ui_.signlabel->setText(" + ");
+      return total_time_*(1.0/count_);
     }
     else
     {
-      ui_.content->show();
-      ui_.signlabel->setText(" - ");
+      return ros::WallDuration();
     }
-
-    Q_EMIT UpdateSizeHint();
   }
-}
+
+  /* Print measurement info to the ROS console. */
+  void printInfo(const std::string &name) const
+  {
+    if (count_)
+    {
+      ROS_INFO("%s -- calls: %d, avg time: %.2fms, max time: %.2fms",
+               name.c_str(),
+               count_,
+               avgTime().toSec()*1000.0,
+               maxTime().toSec()*1000.0);
+    }
+    else
+    {
+      ROS_INFO("%s -- calls: %d, avg time: --ms, max time: --ms",
+               name.c_str(),
+               count_);
+    }
+  }
+
+ private:
+  int count_;
+  ros::WallDuration total_time_;
+  ros::WallDuration max_time_;
+
+  ros::WallTime start_;
+};  // class PluginInstrumentation
+}  // namespace mapviz

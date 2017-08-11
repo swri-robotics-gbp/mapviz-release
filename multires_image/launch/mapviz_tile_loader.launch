@@ -1,13 +1,5 @@
 <launch>
 
-  <env name="ROSCONSOLE_FORMAT" value="[${thread}] [${node}/${function}:${line}]: ${message}"/>
-
-  <arg name="print_profile_data" default="false"/>
-
-  <node pkg="mapviz" type="mapviz" name="$(anon mapviz)" required="true">
-    <param name="print_profile_data" value="$(arg print_profile_data)"/>
-  </node>
-
   <node pkg="swri_transform_util" type="initialize_origin.py" name="initialize_origin" >
     <param name="local_xy_frame" value="/far_field"/>
     <param name="local_xy_origin" value="swri"/>
@@ -26,9 +18,14 @@
     </rosparam>
   </node>
 
-  <node pkg="tf" type="static_transform_publisher" name="swri_transform" args="0 0 0 0 0 0 /far_field /origin 100"  />
+  <node pkg="mapviz" type="mapviz" name="$(anon mapviz)"/>
 
-  <!-- Needed only for searching for services -->
-  <node pkg="rosapi" type="rosapi_node" name="rosapi"/>
+  <node pkg="multires_image" type="mapviz_tile_loader" name="mapviz_tile_loader">
+    <param name="base_directory" value="$(env HOME)/.map_tiles"/>
+    <param name="draw_order" value="1"/>
+    
+  	<remap from="add_mapviz_display" to="mapviz/add_mapviz_display"/>
+  	<remap from="gps" to="/local_xy_origin"/>
+  </node>
 
 </launch>

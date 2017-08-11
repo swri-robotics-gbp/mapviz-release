@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2016, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/plan_route_plugin.h>
+#include <mapviz_plugins/draw_polygon_plugin.h>
 
 // C++ standard libraries
 #include <cstdio>
@@ -40,33 +40,27 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPalette>
-#include <QStaticText>
 
 #include <opencv2/core/core.hpp>
 
-// ROS libraries
+#include <geometry_msgs/Point32.h>
+#include <geometry_msgs/PolygonStamped.h>
 #include <ros/master.h>
-
-#include <swri_route_util/util.h>
+#include <mapviz/select_frame_dialog.h>
 #include <swri_transform_util/frames.h>
-
-#include <marti_nav_msgs/PlanRoute.h>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_DECLARE_CLASS(mapviz_plugins, plan_route, mapviz_plugins::PlanRoutePlugin,
+PLUGINLIB_DECLARE_CLASS(mapviz_plugins, draw_polygon, mapviz_plugins::DrawPolygonPlugin,
                         mapviz::MapvizPlugin);
 
-namespace mnm = marti_nav_msgs;
-namespace sru = swri_route_util;
 namespace stu = swri_transform_util;
 
 namespace mapviz_plugins
 {
-  PlanRoutePlugin::PlanRoutePlugin() :
+  DrawPolygonPlugin::DrawPolygonPlugin() :
     config_widget_(new QWidget()),
     map_canvas_(NULL),
-    failed_service_(false),
     selected_point_(-1),
     is_mouse_down_(false),
     max_ms_(Q_INT64_C(500)),
@@ -83,15 +77,18 @@ namespace mapviz_plugins
     QPalette p3(ui_.status->palette());
     p3.setColor(QPalette::Text, Qt::red);
     ui_.status->setPalette(p3);
-    QObject::connect(ui_.service, SIGNAL(editingFinished()), this,
-                     SLOT(PlanRoute()));
+
+    QObject::connect(ui_.selectframe, SIGNAL(clicked()), this,
+                     SLOT(SelectFrame()));
+    QObject::connect(ui_.frame, SIGNAL(editingFinished()), this,
+                     SLOT(FrameEdited()));
     QObject::connect(ui_.publish, SIGNAL(clicked()), this,
-                     SLOT(PublishRoute()));
+                     SLOT(PublishPolygon()));
     QObject::connect(ui_.clear, SIGNAL(clicked()), this,
                      SLOT(Clear()));
   }
 
-  PlanRoutePlugin::~PlanRoutePlugin()
+  DrawPolygonPlugin::~DrawPolygonPlugin()
   {
     if (map_canvas_)
     {
@@ -99,71 +96,58 @@ namespace mapviz_plugins
     }
   }
 
-  void PlanRoutePlugin::PublishRoute()
+  void DrawPolygonPlugin::SelectFrame()
   {
-    if (route_preview_)
+    std::string frame = mapviz::SelectFrameDialog::selectFrame(tf_);
+    if (!frame.empty())
     {
-      if (route_topic_ != ui_.topic->text().toStdString())
-      {
-        route_topic_ = ui_.topic->text().toStdString();
-        route_pub_.shutdown();
-        route_pub_ = node_.advertise<sru::Route>(route_topic_, 1, true);
-      }
-
-      route_pub_.publish(route_preview_);
+      ui_.frame->setText(QString::fromStdString(frame));
+      FrameEdited();
     }
   }
 
-  void PlanRoutePlugin::PlanRoute()
+  void DrawPolygonPlugin::FrameEdited()
   {
-    route_preview_ = sru::RoutePtr();
-    bool start_from_vehicle = ui_.start_from_vehicle->isChecked();
-    if (waypoints_.size() + start_from_vehicle < 2)
-    {
-      return;
-    }
+    source_frame_ = ui_.frame->text().toStdString();
+    PrintWarning("Waiting for transform.");
 
-    std::string service = ui_.service->text().toStdString();
-    ros::ServiceClient client = node_.serviceClient<mnm::PlanRoute>(service);
+    ROS_INFO("Setting target frame to to %s", source_frame_.c_str());
 
-    mnm::PlanRoute plan_route;
-    plan_route.request.header.frame_id = stu::_wgs84_frame;
-    plan_route.request.header.stamp = ros::Time::now();
-    plan_route.request.plan_from_vehicle = static_cast<unsigned char>(start_from_vehicle);
-    plan_route.request.waypoints = waypoints_;
-
-    if (client.call(plan_route))
-    {
-      if (plan_route.response.success)
-      {
-        route_preview_ = boost::make_shared<sru::Route>(plan_route.response.route);
-        failed_service_ = false;
-      }
-      else
-      {
-        PrintError(plan_route.response.message);
-        failed_service_ = true;
-      }
-    }
-    else
-    {
-      PrintError("Failed to plan route.");
-      failed_service_ = true;
-    }
+    initialized_ = true;
   }
 
-  void PlanRoutePlugin::Retry(const ros::TimerEvent& e)
+  void DrawPolygonPlugin::PublishPolygon()
   {
-    PlanRoute();
+    if (polygon_topic_ != ui_.topic->text().toStdString())
+    {
+      polygon_topic_ = ui_.topic->text().toStdString();
+      polygon_pub_.shutdown();
+      polygon_pub_ = node_.advertise<geometry_msgs::PolygonStamped>(polygon_topic_, 1, true);
+    }
+
+    geometry_msgs::PolygonStamped polygon;
+    polygon.header.stamp = ros::Time::now();
+    polygon.header.frame_id = ui_.frame->text().toStdString();
+
+    for (const auto& vertex: vertices_)
+    {
+      geometry_msgs::Point32 point;
+      point.x = vertex.x();
+      point.y = vertex.y();
+      point.z = 0;
+      polygon.polygon.points.push_back(point);
+    }
+
+    polygon_pub_.publish(polygon);
   }
 
-  void PlanRoutePlugin::Clear()
+  void DrawPolygonPlugin::Clear()
   {
-    waypoints_.clear();
-    route_preview_ = sru::RoutePtr();
+    vertices_.clear();
+    transformed_vertices_.clear();
   }
 
-  void PlanRoutePlugin::PrintError(const std::string& message)
+  void DrawPolygonPlugin::PrintError(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
     {
@@ -177,7 +161,7 @@ namespace mapviz_plugins
     ui_.status->setText(message.c_str());
   }
 
-  void PlanRoutePlugin::PrintInfo(const std::string& message)
+  void DrawPolygonPlugin::PrintInfo(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
     {
@@ -191,7 +175,7 @@ namespace mapviz_plugins
     ui_.status->setText(message.c_str());
   }
 
-  void PlanRoutePlugin::PrintWarning(const std::string& message)
+  void DrawPolygonPlugin::PrintWarning(const std::string& message)
   {
     if (message == ui_.status->text().toStdString())
     {
@@ -205,25 +189,23 @@ namespace mapviz_plugins
     ui_.status->setText(message.c_str());
   }
 
-  QWidget* PlanRoutePlugin::GetConfigWidget(QWidget* parent)
+  QWidget* DrawPolygonPlugin::GetConfigWidget(QWidget* parent)
   {
     config_widget_->setParent(parent);
 
     return config_widget_;
   }
 
-  bool PlanRoutePlugin::Initialize(QGLWidget* canvas)
+  bool DrawPolygonPlugin::Initialize(QGLWidget* canvas)
   {
     map_canvas_ = static_cast<mapviz::MapCanvas*>(canvas);
     map_canvas_->installEventFilter(this);
-
-    retry_timer_ = node_.createTimer(ros::Duration(1), &PlanRoutePlugin::Retry, this);
 
     initialized_ = true;
     return true;
   }
 
-  bool PlanRoutePlugin::eventFilter(QObject *object, QEvent* event)
+  bool DrawPolygonPlugin::eventFilter(QObject *object, QEvent* event)
   {
     switch (event->type())
     {
@@ -238,7 +220,7 @@ namespace mapviz_plugins
     }
   }
 
-  bool PlanRoutePlugin::handleMousePress(QMouseEvent* event)
+  bool DrawPolygonPlugin::handleMousePress(QMouseEvent* event)
   {
     selected_point_ = -1;
     int closest_point = 0;
@@ -246,17 +228,15 @@ namespace mapviz_plugins
 
     QPointF point = event->posF();
     stu::Transform transform;
-    if (tf_manager_.GetTransform(target_frame_, stu::_wgs84_frame, transform))
+    std::string frame = ui_.frame->text().toStdString();
+    if (tf_manager_.GetTransform(target_frame_, frame, transform))
     {
-      for (size_t i = 0; i < waypoints_.size(); i++)
+      for (size_t i = 0; i < vertices_.size(); i++)
       {
-        tf::Vector3 waypoint(
-            waypoints_[i].position.x,
-            waypoints_[i].position.y,
-            0.0);
-        waypoint = transform * waypoint;
+        tf::Vector3 vertex = vertices_[i];
+        vertex = transform * vertex;
 
-        QPointF transformed = map_canvas_->FixedFrameToMapGlCoord(QPointF(waypoint.x(), waypoint.y()));
+        QPointF transformed = map_canvas_->FixedFrameToMapGlCoord(QPointF(vertex.x(), vertex.y()));
 
         double distance = QLineF(transformed, point).length();
 
@@ -287,8 +267,8 @@ namespace mapviz_plugins
     {
       if (closest_distance < 15)
       {
-        waypoints_.erase(waypoints_.begin() + closest_point);
-        PlanRoute();
+        vertices_.erase(vertices_.begin() + closest_point);
+        transformed_vertices_.resize(vertices_.size());
         return true;
       }
     }
@@ -296,20 +276,20 @@ namespace mapviz_plugins
     return false;
   }
 
-  bool PlanRoutePlugin::handleMouseRelease(QMouseEvent* event)
+  bool DrawPolygonPlugin::handleMouseRelease(QMouseEvent* event)
   {
-    if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < waypoints_.size())
+    std::string frame = ui_.frame->text().toStdString();
+    if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < vertices_.size())
     {
       QPointF point = event->posF();
       stu::Transform transform;
-      if (tf_manager_.GetTransform(stu::_wgs84_frame, target_frame_, transform))
+      if (tf_manager_.GetTransform(frame, target_frame_, transform))
       {
         QPointF transformed = map_canvas_->MapGlCoordToFixedFrame(point);
         tf::Vector3 position(transformed.x(), transformed.y(), 0.0);
         position = transform * position;
-        waypoints_[selected_point_].position.x = position.x();
-        waypoints_[selected_point_].position.y = position.y();
-        PlanRoute();
+        vertices_[selected_point_].setX(position.x());
+        vertices_[selected_point_].setY(position.y());
       }
 
       selected_point_ = -1;
@@ -330,18 +310,17 @@ namespace mapviz_plugins
 
 
         QPointF transformed = map_canvas_->MapGlCoordToFixedFrame(point);
+        ROS_INFO("mouse point at %f, %f -> %f, %f", point.x(), point.y(), transformed.x(), transformed.y());
 
         stu::Transform transform;
         tf::Vector3 position(transformed.x(), transformed.y(), 0.0);
-        if (tf_manager_.GetTransform(stu::_wgs84_frame, target_frame_, transform))
+
+        if (tf_manager_.GetTransform(frame, target_frame_, transform))
         {
           position = transform * position;
-
-          geometry_msgs::Pose pose;
-          pose.position.x = position.x();
-          pose.position.y = position.y();
-          waypoints_.push_back(pose);
-          PlanRoute();
+          vertices_.push_back(position);
+          transformed_vertices_.resize(vertices_.size());
+          ROS_INFO("Adding vertex at %lf, %lf %s", position.x(), position.y(), frame.c_str());
         }
       }
     }
@@ -350,20 +329,20 @@ namespace mapviz_plugins
     return false;
   }
 
-  bool PlanRoutePlugin::handleMouseMove(QMouseEvent* event)
+  bool DrawPolygonPlugin::handleMouseMove(QMouseEvent* event)
   {
-    if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < waypoints_.size())
+    if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < vertices_.size())
     {
       QPointF point = event->posF();
       stu::Transform transform;
-      if (tf_manager_.GetTransform(stu::_wgs84_frame, target_frame_, transform))
+      std::string frame = ui_.frame->text().toStdString();
+      if (tf_manager_.GetTransform(frame, target_frame_, transform))
       {
         QPointF transformed = map_canvas_->MapGlCoordToFixedFrame(point);
         tf::Vector3 position(transformed.x(), transformed.y(), 0.0);
         position = transform * position;
-        waypoints_[selected_point_].position.y = position.y();
-        waypoints_[selected_point_].position.x = position.x();
-        PlanRoute();
+        vertices_[selected_point_].setY(position.y());
+        vertices_[selected_point_].setX(position.x());
       }
 
       return true;
@@ -371,87 +350,73 @@ namespace mapviz_plugins
     return false;
   }
 
-  void PlanRoutePlugin::Draw(double x, double y, double scale)
+  void DrawPolygonPlugin::Draw(double x, double y, double scale)
   {
     stu::Transform transform;
-    if (tf_manager_.GetTransform(target_frame_, stu::_wgs84_frame, transform))
+    std::string frame = ui_.frame->text().toStdString();
+    if (!tf_manager_.GetTransform(target_frame_, frame, transform))
     {
-      if (!failed_service_)
-      {
-        if (route_preview_)
-        {
-          sru::Route route = *route_preview_;
-          sru::transform(route, transform, target_frame_);
-
-          glLineWidth(2);
-          const QColor color = ui_.color->color();
-          glColor4d(color.redF(), color.greenF(), color.blueF(), 1.0);
-          glBegin(GL_LINE_STRIP);
-
-          for (size_t i = 0; i < route.points.size(); i++)
-          {
-            glVertex2d(route.points[i].position().x(), route.points[i].position().y());
-          }
-
-          glEnd();
-        }
-
-        PrintInfo("OK");
-      }
-
-      // Draw waypoints
-
-      glPointSize(20);
-      glColor4f(0.0, 1.0, 1.0, 1.0);
-      glBegin(GL_POINTS);
-
-      for (size_t i = 0; i < waypoints_.size(); i++)
-      {
-        tf::Vector3 point(waypoints_[i].position.x, waypoints_[i].position.y, 0);
-        point = transform * point;
-        glVertex2d(point.x(), point.y());
-      }
-      glEnd();
+      return;
     }
-    else
+
+    // Transform polygon
+    for (size_t i = 0; i < vertices_.size(); i++)
     {
-      PrintError("Failed to transform.");
+      transformed_vertices_[i] = transform * vertices_[i];
     }
+
+    glLineWidth(1);
+    const QColor color = ui_.color->color();
+    glColor4d(color.redF(), color.greenF(), color.blueF(), 1.0);
+    glBegin(GL_LINE_STRIP);
+
+    for (const auto& vertex: transformed_vertices_)
+    {
+      glVertex2d(vertex.x(), vertex.y());
+    }
+
+    glEnd();
+
+    glBegin(GL_LINES);
+
+    glColor4d(color.redF(), color.greenF(), color.blueF(), 0.25);
+
+    if (transformed_vertices_.size() > 2)
+    {
+      glVertex2d(transformed_vertices_.front().x(), transformed_vertices_.front().y());
+      glVertex2d(transformed_vertices_.back().x(), transformed_vertices_.back().y());
+    }
+
+    glEnd();
+
+    // Draw vertices
+    glPointSize(9);
+    glBegin(GL_POINTS);
+
+    for (const auto& vertex: transformed_vertices_)
+    {
+      glVertex2d(vertex.x(), vertex.y());
+    }
+    glEnd();
+
+
+
+    PrintInfo("OK");
   }
 
-  void PlanRoutePlugin::Paint(QPainter* painter, double x, double y, double scale)
+  void DrawPolygonPlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
-    painter->save();
-    painter->resetTransform();
-
-    QPen pen(QBrush(QColor(Qt::darkCyan).darker()), 1);
-    painter->setPen(pen);
-    painter->setFont(QFont("DejaVu Sans Mono", 7));
-
-    stu::Transform transform;
-    if (tf_manager_.GetTransform(target_frame_, stu::_wgs84_frame, transform))
+    if (node["frame"])
     {
-      for (size_t i = 0; i < waypoints_.size(); i++)
-      {
-        tf::Vector3 point(waypoints_[i].position.x, waypoints_[i].position.y, 0);
-        point = transform * point;
-        QPointF gl_point = map_canvas_->FixedFrameToMapGlCoord(QPointF(point.x(), point.y()));
-        QPointF corner(gl_point.x() - 20, gl_point.y() - 20);
-        QRectF rect(corner, QSizeF(40, 40));
-        painter->drawText(rect, Qt::AlignHCenter | Qt::AlignVCenter, QString::fromStdString(boost::lexical_cast<std::string>(i + 1)));
-      }
+      node["frame"] >> source_frame_;
+      ui_.frame->setText(source_frame_.c_str());
     }
 
-    painter->restore();
-  }
-
-  void PlanRoutePlugin::LoadConfig(const YAML::Node& node, const std::string& path)
-  {
-    if (node["route_topic"])
+    if (node["polygon_topic"])
     {
-      std::string route_topic;
-      node["route_topic"] >> route_topic;
-      ui_.topic->setText(route_topic.c_str());
+      std::string polygon_topic;
+      node["polygon_topic"] >> polygon_topic;
+      ui_.topic->setText(polygon_topic.c_str());
     }
     if (node["color"])
     {
@@ -459,34 +424,17 @@ namespace mapviz_plugins
       node["color"] >> color;
       ui_.color->setColor(QColor(color.c_str()));
     }
-    if (node["service"])
-    {
-      std::string service;
-      node["service"] >> service;
-      ui_.service->setText(service.c_str());
-    }
-    if (node["start_from_vehicle"])
-    {
-      bool start_from_vehicle;
-      node["start_from_vehicle"] >> start_from_vehicle;
-      ui_.start_from_vehicle->setChecked(start_from_vehicle);
-    }
-
-    PlanRoute();
   }
 
-  void PlanRoutePlugin::SaveConfig(YAML::Emitter& emitter, const std::string& path)
+  void DrawPolygonPlugin::SaveConfig(YAML::Emitter& emitter, const std::string& path)
   {
-    std::string route_topic = ui_.topic->text().toStdString();
-    emitter << YAML::Key << "route_topic" << YAML::Value << route_topic;
+    std::string frame = ui_.frame->text().toStdString();
+    emitter << YAML::Key << "frame" << YAML::Value << frame;
+
+    std::string polygon_topic = ui_.topic->text().toStdString();
+    emitter << YAML::Key << "polygon_topic" << YAML::Value << polygon_topic;
 
     std::string color = ui_.color->color().name().toStdString();
     emitter << YAML::Key << "color" << YAML::Value << color;
-
-    std::string service = ui_.service->text().toStdString();
-    emitter << YAML::Key << "service" << YAML::Value << service;
-
-    bool start_from_vehicle = ui_.start_from_vehicle->isChecked();
-    emitter << YAML::Key << "start_from_vehicle" << YAML::Value << start_from_vehicle;
   }
 }
