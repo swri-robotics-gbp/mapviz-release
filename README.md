@@ -1,3 +1,30 @@
+## mapviz (kinetic) - 0.2.4-0
+
+The packages in the `mapviz` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release -r kinetic -t kinetic mapviz` on `Fri, 11 Aug 2017 14:59:59 -0000`
+
+These packages were released:
+- `mapviz`
+- `mapviz_plugins`
+- `multires_image`
+- `tile_map`
+
+Version of package(s) in repository `mapviz`:
+
+- upstream repository: https://github.com/swri-robotics/mapviz.git
+- release repository: https://github.com/swri-robotics-gbp/mapviz-release.git
+- rosdistro version: `0.2.3-0`
+- old version: `0.2.3-0`
+- new version: `0.2.4-0`
+
+Versions of tools used:
+
+- bloom version: `0.5.26`
+- catkin_pkg version: `0.3.5`
+- rosdep version: `0.11.8`
+- rosdistro version: `0.6.2`
+- vcstools version: `0.1.39`
+
+
 ## mapviz (indigo) - 0.0.8-0
 
 The packages in the `mapviz` repository were released into the `indigo` distro by running `/usr/bin/bloom-release -r indigo -t indigo mapviz` on `Fri, 11 Aug 2017 14:57:32 -0000`
