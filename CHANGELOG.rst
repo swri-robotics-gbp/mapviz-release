@@ -2,6 +2,13 @@
 Changelog for package mapviz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.0.8 (2017-08-11)
+------------------
+* Add basic profiling to mapviz.
+* Handle GL canvas transforms with an invalid target frame
+* Add parameter to disable auto-saving functionality.
+* Contributors: Elliot Johnson, Marc Alban, P. J. Reed
+
 0.0.7 (2016-10-23)
 ------------------
 * Add a GUI for controlling the Image Transport (`#432 <https://github.com/swri-robotics/mapviz/issues/432>`_)
