@@ -97,16 +97,18 @@ Overlays a [sensor_msgs::DisparityImage](http://docs.ros.org/api/stereo_msgs/htm
 * Height: Display height
 * Units: (pixels | percent of window)
 
-### NavSat (GPS)
+### GPS
 
-Projects [sensor_msgs::NavSatFix](http://http://docs.ros.org/jade/api/sensor_msgs/html/msg/NavSatFix.html) message data into the scene.
+Projects [gps_common::GPSFix](http://docs.ros.org/kinetic/api/gps_common/html/msg/GPSFix.html) message data into the scene.
 
 **Parameters**
  * Topic: The GPS topic
  * Color: The color of the GPS data
- * Draw Style: (lines | points)
+ * Draw Style: (lines | points | arrows)
+ * Static Arrow Sizes: If checked, draw arrows the same size regardless of zoom level; slider adjusts size
  * Position Tolerance: Distance threshold for adding new GPS points to visualization
  * Buffer Size: Size of circular buffer of GPS points
+ * Show Laps: If checked, multiple loops of GPS coordinates will have different colors
 
 ### Grid
 Projects a 2D grid into the scene.
@@ -154,6 +156,14 @@ Projects a [visualization_msgs::Marker](http://docs.ros.org/api/visualization_ms
 **Parameters**
 * Topic: The marker topic
 
+### Move Base
+This plugin allows the user to send goals to [move_base](wiki.ros.org/move_base).
+
+**Buttons**
+* Estimated pose: similarly to RViz, it will publish a [geometry_msgs::PoseWithCovarianceStamped](http://docs.ros.org/api/geometry_msgs/html/msg/PoseWithCovarianceStamped.html) using the topic __/initialpose__.
+* 2D Nav goal: send a [move_base_msgs/MoveBaseActionGoal](http://wiki.ros.org/move_base#Action_API), unlike its RViz equivalent, which publishes a message on the topic __/move_base_simple/goal__.
+* Abort: stop the execution of the current goal.
+
 ### Multi-res Image
 Projects a geo-referenced multi-resolution image tile map into the scene.  The concept is the same as the Google Maps style pan/zoom satellite imagery. 
 
@@ -185,6 +195,17 @@ The map tiles are stored in directories for each resolution starting with layer0
 Tiles are named using the following format: 
 
     tile%05dx%05d.png % (row, column)
+
+### NavSat
+
+Projects [sensor_msgs::NavSatFix](http://http://docs.ros.org/jade/api/sensor_msgs/html/msg/NavSatFix.html) message data into the scene.
+
+**Parameters**
+ * Topic: The GPS topic
+ * Color: The color of the GPS data
+ * Draw Style: (lines | points)
+ * Position Tolerance: Distance threshold for adding new GPS points to visualization
+ * Buffer Size: Size of circular buffer of GPS points
 
 ### Odometry
 
