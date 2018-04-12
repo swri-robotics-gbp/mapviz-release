@@ -17,7 +17,7 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/navsat_plugin.h>
+#include <mapviz_plugins/gps_plugin.h>
 
 // C++ standard libraries
 #include <cstdio>
@@ -35,16 +35,15 @@
 
 #include <swri_image_util/geometry_util.h>
 #include <swri_transform_util/transform_util.h>
-
 #include <mapviz/select_topic_dialog.h>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(mapviz_plugins::NavSatPlugin, mapviz::MapvizPlugin)
+PLUGINLIB_EXPORT_CLASS(mapviz_plugins::GpsPlugin, mapviz::MapvizPlugin)
 
 namespace mapviz_plugins
 {
-  NavSatPlugin::NavSatPlugin() : config_widget_(new QWidget())
+  GpsPlugin::GpsPlugin() : config_widget_(new QWidget())
   {
     ui_.setupUi(config_widget_);
 
@@ -70,18 +69,22 @@ namespace mapviz_plugins
                      SLOT(BufferSizeChanged(int)));
     QObject::connect(ui_.drawstyle, SIGNAL(activated(QString)), this,
                      SLOT(SetDrawStyle(QString)));
-    QObject::connect(ui_.color, SIGNAL(colorEdited(const QColor&)), this,
-                     SLOT(SetColor(const QColor&)));
+    QObject::connect(ui_.static_arrow_sizes, SIGNAL(clicked(bool)),
+                     this, SLOT(SetStaticArrowSizes(bool)));
+    QObject::connect(ui_.arrow_size, SIGNAL(valueChanged(int)),
+                     this, SLOT(SetArrowSize(int)));
+    connect(ui_.color, SIGNAL(colorEdited(const QColor&)), this,
+            SLOT(SetColor(const QColor&)));
   }
 
-  NavSatPlugin::~NavSatPlugin()
+  GpsPlugin::~GpsPlugin()
   {
   }
 
-  void NavSatPlugin::SelectTopic()
+  void GpsPlugin::SelectTopic()
   {
     ros::master::TopicInfo topic =
-        mapviz::SelectTopicDialog::selectTopic("sensor_msgs/NavSatFix");
+        mapviz::SelectTopicDialog::selectTopic("gps_common/GPSFix");
 
     if (!topic.name.empty())
     {
@@ -90,7 +93,7 @@ namespace mapviz_plugins
     }
   }
 
-  void NavSatPlugin::TopicEdited()
+  void GpsPlugin::TopicEdited()
   {
     std::string topic = ui_.topic->text().trimmed().toStdString();
     if (topic != topic_)
@@ -100,19 +103,19 @@ namespace mapviz_plugins
       has_message_ = false;
       PrintWarning("No messages received.");
 
-      navsat_sub_.shutdown();
+      gps_sub_.shutdown();
+
       topic_ = topic;
       if (!topic.empty())
       {
-        navsat_sub_ = node_.subscribe(topic_, 1, &NavSatPlugin::NavSatFixCallback, this);
+        gps_sub_ = node_.subscribe(topic_, 1, &GpsPlugin::GPSFixCallback, this);
 
         ROS_INFO("Subscribing to %s", topic_.c_str());
       }
     }
   }
 
-  void NavSatPlugin::NavSatFixCallback(
-      const sensor_msgs::NavSatFixConstPtr navsat)
+  void GpsPlugin::GPSFixCallback(const gps_common::GPSFixConstPtr& gps)
   {
     if (!local_xy_util_.Initialized())
     {
@@ -125,21 +128,24 @@ namespace mapviz_plugins
     }
 
     StampedPoint stamped_point;
-    stamped_point.stamp = navsat->header.stamp;
-
+    stamped_point.stamp = gps->header.stamp;
+    stamped_point.source_frame = local_xy_util_.Frame();
     double x;
     double y;
-    local_xy_util_.ToLocalXy(navsat->latitude, navsat->longitude, x, y);
+    local_xy_util_.ToLocalXy(gps->latitude, gps->longitude, x, y);
 
-    stamped_point.point = tf::Point(x, y, navsat->altitude);
-
-    stamped_point.orientation = tf::createQuaternionFromYaw(0.0);
-
-    stamped_point.source_frame = local_xy_util_.Frame();
+    stamped_point.point = tf::Point(x, y, gps->altitude);
+    lap_checked_ = ui_.show_laps->isChecked();
+    // The GPS "track" is in degrees, but createQuaternionFromYaw expects
+    // radians.
+    // Furthermore, the track rotates in the opposite direction and is also
+    // offset by 90 degrees, so all of that has to be compensated for.
+    stamped_point.orientation =
+        tf::createQuaternionFromYaw((-gps->track * (M_PI / 180.0)) + M_PI_2);
 
     if (points_.empty() ||
-        stamped_point.point.distance(points_.back().point) >=
-            position_tolerance_)
+        (stamped_point.point.distance(points_.back().point)) >=
+            (position_tolerance_))
     {
       points_.push_back(stamped_point);
     }
@@ -155,36 +161,37 @@ namespace mapviz_plugins
     cur_point_ = stamped_point;
   }
 
-  void NavSatPlugin::PrintError(const std::string& message)
+  void GpsPlugin::PrintError(const std::string& message)
   {
     PrintErrorHelper(ui_.status, message);
   }
 
-  void NavSatPlugin::PrintInfo(const std::string& message)
+  void GpsPlugin::PrintInfo(const std::string& message)
   {
     PrintInfoHelper(ui_.status, message);
   }
 
-  void NavSatPlugin::PrintWarning(const std::string& message)
+  void GpsPlugin::PrintWarning(const std::string& message)
   {
     PrintWarningHelper(ui_.status, message);
   }
 
-  QWidget* NavSatPlugin::GetConfigWidget(QWidget* parent)
+  QWidget* GpsPlugin::GetConfigWidget(QWidget* parent)
   {
     config_widget_->setParent(parent);
 
     return config_widget_;
   }
 
-  bool NavSatPlugin::Initialize(QGLWidget* canvas)
+  bool GpsPlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
     SetColor(ui_.color->color());
+
     return true;
   }
 
-  void NavSatPlugin::Draw(double x, double y, double scale)
+  void GpsPlugin::Draw(double x, double y, double scale)
   {
     if (DrawPoints(scale))
     {
@@ -192,7 +199,7 @@ namespace mapviz_plugins
     }
   }
 
-  void NavSatPlugin::LoadConfig(const YAML::Node& node, const std::string& path)
+  void GpsPlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
     if (node["topic"])
     {
@@ -224,6 +231,11 @@ namespace mapviz_plugins
         draw_style_ = POINTS;
         ui_.drawstyle->setCurrentIndex(1);
       }
+      else if (draw_style == "arrows")
+      {
+        draw_style_ = ARROWS;
+        ui_.drawstyle->setCurrentIndex(2);
+      }
     }
 
     if (node["position_tolerance"])
@@ -238,16 +250,35 @@ namespace mapviz_plugins
       ui_.buffersize->setValue(buffer_size_);
     }
 
+    if (node["show_laps"])
+    {
+      bool show_laps = false;
+      node["show_laps"] >> show_laps;
+      ui_.show_laps->setChecked(show_laps);
+    }
+
+    if (node["static_arrow_sizes"])
+    {
+      bool static_arrow_sizes = node["static_arrow_sizes"].as<bool>();
+      ui_.static_arrow_sizes->setChecked(static_arrow_sizes);
+      SetStaticArrowSizes(static_arrow_sizes);
+    }
+
+    if (node["arrow_size"])
+    {
+      ui_.arrow_size->setValue(node["arrow_size"].as<int>());
+    }
+
     TopicEdited();
   }
 
-  void NavSatPlugin::SaveConfig(YAML::Emitter& emitter, const std::string& path)
+  void GpsPlugin::SaveConfig(YAML::Emitter& emitter, const std::string& path)
   {
     std::string topic = ui_.topic->text().toStdString();
     emitter << YAML::Key << "topic" << YAML::Value << topic;
 
-    std::string color = ui_.color->color().name().toStdString();
-    emitter << YAML::Key << "color" << YAML::Value << color;
+    emitter << YAML::Key << "color" << YAML::Value
+            << ui_.color->color().name().toStdString();
 
     std::string draw_style = ui_.drawstyle->currentText().toStdString();
     emitter << YAML::Key << "draw_style" << YAML::Value << draw_style;
@@ -255,6 +286,20 @@ namespace mapviz_plugins
     emitter << YAML::Key << "position_tolerance" <<
                YAML::Value << position_tolerance_;
 
-    emitter << YAML::Key << "buffer_size" << YAML::Value << buffer_size_;
+    if (!lap_checked_)
+    {
+      emitter << YAML::Key << "buffer_size" << YAML::Value << buffer_size_;
+    }
+    else
+    {
+      emitter << YAML::Key << "buffer_size" << YAML::Value << buffer_holder_;
+    }
+
+    bool show_laps = ui_.show_laps->isChecked();
+    emitter << YAML::Key << "show_laps" << YAML::Value << show_laps;
+
+    emitter << YAML::Key << "static_arrow_sizes" << YAML::Value << ui_.static_arrow_sizes->isChecked();
+
+    emitter << YAML::Key << "arrow_size" << YAML::Value << ui_.arrow_size->value();
   }
 }
