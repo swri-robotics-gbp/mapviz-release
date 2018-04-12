@@ -10,7 +10,7 @@ notifications:
 env:
   global:
     - USE_DEB=true
-    - ROS_DISTRO="indigo"
+    - ROS_DISTRO="kinetic"
   matrix:
     - ROS_REPOSITORY_PATH=http://packages.ros.org/ros/ubuntu
     - ROS_REPOSITORY_PATH=http://packages.ros.org/ros-shadow-fixed/ubuntu
