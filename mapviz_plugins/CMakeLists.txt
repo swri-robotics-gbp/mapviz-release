@@ -2,12 +2,15 @@ cmake_minimum_required(VERSION 2.8.3)
 project(mapviz_plugins)
 
 set(DEPENDENCIES
+  actionlib
   cv_bridge
+  gps_common
   image_transport
   mapviz
   marti_common_msgs
   marti_nav_msgs
   marti_visualization_msgs
+  move_base_msgs
   nav_msgs
   pluginlib 
   roscpp 
@@ -73,10 +76,13 @@ include_directories(include
 set(UI_FILES
     ui/attitude_indicator_config.ui
     ui/disparity_config.ui
+    ui/draw_polygon_config.ui
+    ui/gps_config.ui
     ui/grid_config.ui
     ui/image_config.ui
     ui/laserscan_config.ui
     ui/marker_config.ui
+    ui/move_base_config.ui
     ui/navsat_config.ui
     ui/odometry_config.ui
     ui/path_config.ui
@@ -93,11 +99,14 @@ set(UI_FILES
 set(SRC_FILES
     src/attitude_indicator_plugin.cpp 
     src/canvas_click_filter.cpp
-    src/disparity_plugin.cpp 
+    src/disparity_plugin.cpp
+    src/draw_polygon_plugin.cpp
+    src/gps_plugin.cpp
     src/grid_plugin.cpp
     src/image_plugin.cpp
     src/laserscan_plugin.cpp
     src/marker_plugin.cpp 
+    src/move_base_plugin.cpp
     src/navsat_plugin.cpp
     src/odometry_plugin.cpp 
     src/path_plugin.cpp
@@ -117,12 +126,15 @@ set(HEADER_FILES
     include/${PROJECT_NAME}/attitude_indicator_plugin.h
     include/${PROJECT_NAME}/canvas_click_filter.h
     include/${PROJECT_NAME}/disparity_plugin.h
+    include/${PROJECT_NAME}/draw_polygon_plugin.h
+    include/${PROJECT_NAME}/gps_plugin.h
     include/${PROJECT_NAME}/grid_plugin.h
     include/${PROJECT_NAME}/image_plugin.h
     include/${PROJECT_NAME}/path_plugin.h
     include/${PROJECT_NAME}/placeable_window_proxy.h
     include/${PROJECT_NAME}/laserscan_plugin.h
     include/${PROJECT_NAME}/marker_plugin.h
+    include/${PROJECT_NAME}/move_base_plugin.h
     include/${PROJECT_NAME}/navsat_plugin.h
     include/${PROJECT_NAME}/odometry_plugin.h
     include/${PROJECT_NAME}/path_plugin.h
