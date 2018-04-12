@@ -54,8 +54,7 @@
 
 // Declare plugin
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_DECLARE_CLASS(mapviz_plugins, plan_route, mapviz_plugins::PlanRoutePlugin,
-                        mapviz::MapvizPlugin);
+PLUGINLIB_EXPORT_CLASS(mapviz_plugins::PlanRoutePlugin, mapviz::MapvizPlugin)
 
 namespace mnm = marti_nav_msgs;
 namespace sru = swri_route_util;
@@ -165,44 +164,17 @@ namespace mapviz_plugins
 
   void PlanRoutePlugin::PrintError(const std::string& message)
   {
-    if (message == ui_.status->text().toStdString())
-    {
-      return;
-    }
-
-    ROS_ERROR_THROTTLE(1.0, "Error: %s", message.c_str());
-    QPalette p(ui_.status->palette());
-    p.setColor(QPalette::Text, Qt::red);
-    ui_.status->setPalette(p);
-    ui_.status->setText(message.c_str());
+    PrintErrorHelper(ui_.status, message, 1.0);
   }
 
   void PlanRoutePlugin::PrintInfo(const std::string& message)
   {
-    if (message == ui_.status->text().toStdString())
-    {
-      return;
-    }
-
-    ROS_INFO_THROTTLE(1.0, "%s", message.c_str());
-    QPalette p(ui_.status->palette());
-    p.setColor(QPalette::Text, Qt::green);
-    ui_.status->setPalette(p);
-    ui_.status->setText(message.c_str());
+    PrintInfoHelper(ui_.status, message, 1.0);
   }
 
   void PlanRoutePlugin::PrintWarning(const std::string& message)
   {
-    if (message == ui_.status->text().toStdString())
-    {
-      return;
-    }
-
-    ROS_WARN_THROTTLE(1.0, "%s", message.c_str());
-    QPalette p(ui_.status->palette());
-    p.setColor(QPalette::Text, Qt::darkYellow);
-    ui_.status->setPalette(p);
-    ui_.status->setText(message.c_str());
+    PrintWarningHelper(ui_.status, message, 1.0);
   }
 
   QWidget* PlanRoutePlugin::GetConfigWidget(QWidget* parent)
@@ -244,7 +216,7 @@ namespace mapviz_plugins
     int closest_point = 0;
     double closest_distance = std::numeric_limits<double>::max();
 
-    QPointF point = event->localPos();
+    QPointF point = event->posF();
     stu::Transform transform;
     if (tf_manager_.GetTransform(target_frame_, stu::_wgs84_frame, transform))
     {
@@ -278,7 +250,7 @@ namespace mapviz_plugins
       else
       {
         is_mouse_down_ = true;
-        mouse_down_pos_ = event->localPos();
+        mouse_down_pos_ = event->posF();
         mouse_down_time_ = QDateTime::currentMSecsSinceEpoch();
         return false;
       }
@@ -300,7 +272,7 @@ namespace mapviz_plugins
   {
     if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < waypoints_.size())
     {
-      QPointF point = event->localPos();
+      QPointF point = event->posF();
       stu::Transform transform;
       if (tf_manager_.GetTransform(stu::_wgs84_frame, target_frame_, transform))
       {
@@ -317,7 +289,7 @@ namespace mapviz_plugins
     }
     else if (is_mouse_down_)
     {
-      qreal distance = QLineF(mouse_down_pos_, event->localPos()).length();
+      qreal distance = QLineF(mouse_down_pos_, event->posF()).length();
       qint64 msecsDiff = QDateTime::currentMSecsSinceEpoch() - mouse_down_time_;
 
       // Only fire the event if the mouse has moved less than the maximum distance
@@ -326,7 +298,7 @@ namespace mapviz_plugins
       // or just holding the cursor in place.
       if (msecsDiff < max_ms_ && distance <= max_distance_)
       {
-        QPointF point = event->localPos();
+        QPointF point = event->posF();
 
 
         QPointF transformed = map_canvas_->MapGlCoordToFixedFrame(point);
@@ -354,7 +326,7 @@ namespace mapviz_plugins
   {
     if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < waypoints_.size())
     {
-      QPointF point = event->localPos();
+      QPointF point = event->posF();
       stu::Transform transform;
       if (tf_manager_.GetTransform(stu::_wgs84_frame, target_frame_, transform))
       {

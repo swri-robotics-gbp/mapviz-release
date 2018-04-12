@@ -49,12 +49,7 @@
 
 // Declare plugin
 #include <pluginlib/class_list_macros.h>
-
-PLUGINLIB_DECLARE_CLASS(
-    mapviz_plugins,
-    disparity,
-    mapviz_plugins::DisparityPlugin,
-    mapviz::MapvizPlugin)
+PLUGINLIB_EXPORT_CLASS(mapviz_plugins::DisparityPlugin, mapviz::MapvizPlugin)
 
 namespace mapviz_plugins
 {
@@ -90,6 +85,7 @@ namespace mapviz_plugins
     QObject::connect(ui_.offsety, SIGNAL(valueChanged(int)), this, SLOT(SetOffsetY(int)));
     QObject::connect(ui_.width, SIGNAL(valueChanged(int)), this, SLOT(SetWidth(int)));
     QObject::connect(ui_.height, SIGNAL(valueChanged(int)), this, SLOT(SetHeight(int)));
+    QObject::connect(this,SIGNAL(VisibleChanged(bool)),this,SLOT(SetSubscription(bool)));
   }
 
   DisparityPlugin::~DisparityPlugin()
@@ -167,17 +163,40 @@ namespace mapviz_plugins
       units_ = PERCENT;
     }
   }
+  void DisparityPlugin::SetSubscription(bool visible)
+  {
+    if(topic_.empty())
+    {
+      return;
+    }
+    else if(!visible)
+    {
+      disparity_sub_.shutdown();
+      ROS_INFO("Dropped subscription to %s", topic_.c_str());
+    }
+    else
+    {
+        disparity_sub_ = node_.subscribe(topic_, 1, &DisparityPlugin::disparityCallback, this);
 
+        ROS_INFO("Subscribing to %s", topic_.c_str());
+    }
+  }
   void DisparityPlugin::SelectTopic()
   {
     ros::master::TopicInfo topic = mapviz::SelectTopicDialog::selectTopic(
       "stereo_msgs/DisparityImage");
 
+    if(topic.name.empty())
+    {
+      topic.name.clear();
+      TopicEdited();
+    }
     if (!topic.name.empty())
     {
       ui_.topic->setText(QString::fromStdString(topic.name));
       TopicEdited();
     }
+
   }
 
   void DisparityPlugin::TopicEdited()
@@ -269,38 +288,17 @@ namespace mapviz_plugins
 
   void DisparityPlugin::PrintError(const std::string& message)
   {
-    if (message == ui_.status->text().toStdString())
-      return;
-
-    ROS_ERROR("Error: %s", message.c_str());
-    QPalette p(ui_.status->palette());
-    p.setColor(QPalette::Text, Qt::red);
-    ui_.status->setPalette(p);
-    ui_.status->setText(message.c_str());
+    PrintErrorHelper(ui_.status, message);
   }
 
   void DisparityPlugin::PrintInfo(const std::string& message)
   {
-    if (message == ui_.status->text().toStdString())
-      return;
-
-    ROS_INFO("%s", message.c_str());
-    QPalette p(ui_.status->palette());
-    p.setColor(QPalette::Text, Qt::green);
-    ui_.status->setPalette(p);
-    ui_.status->setText(message.c_str());
+    PrintInfoHelper(ui_.status, message);
   }
 
   void DisparityPlugin::PrintWarning(const std::string& message)
   {
-    if (message == ui_.status->text().toStdString())
-      return;
-
-    ROS_WARN("%s", message.c_str());
-    QPalette p(ui_.status->palette());
-    p.setColor(QPalette::Text, Qt::darkYellow);
-    ui_.status->setPalette(p);
-    ui_.status->setText(message.c_str());
+    PrintWarningHelper(ui_.status, message);
   }
 
   QWidget* DisparityPlugin::GetConfigWidget(QWidget* parent)

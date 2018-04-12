@@ -1,4 +1,13 @@
 <library path="lib/libmapviz_plugins">
+
+  <class name="mapviz_plugins/attitude_indicator" 
+         type="mapviz_plugins::AttitudeIndicatorPlugin" 
+         base_class_type="mapviz::MapvizPlugin">
+    <description>
+      Plugin to provide an intuitive visualization of orientations
+      from IMU messages, Odometry messages, and Tf messages.
+    </description>
+  </class>
   <class name="mapviz_plugins/odometry" type="mapviz_plugins::OdometryPlugin" base_class_type="mapviz::MapvizPlugin">
     <description>Odometry mapviz plugin.</description>
   </class>
@@ -17,6 +26,9 @@
   <class name="mapviz_plugins/disparity" type="mapviz_plugins::DisparityPlugin" base_class_type="mapviz::MapvizPlugin">
     <description>Disparity mapviz plugin.</description>
   </class>
+  <class name="mapviz_plugins/draw_polygon" type="mapviz_plugins::DrawPolygonPlugin" base_class_type="mapviz::MapvizPlugin">
+    <description>Plugin for drawing and publishing a polygon.</description>
+  </class>
   <class name="mapviz_plugins/path" type="mapviz_plugins::PathPlugin" base_class_type="mapviz::MapvizPlugin">
     <description>Path mapviz plugin.</description>
   </class>
@@ -31,6 +43,9 @@
   </class>
   <class name="mapviz_plugins/robot_image" type="mapviz_plugins::RobotImagePlugin" base_class_type="mapviz::MapvizPlugin">
     <description>Robot image mapviz plugin.</description>
+  </class>
+  <class name="mapviz_plugins/gps" type="mapviz_plugins::GpsPlugin" base_class_type="mapviz::MapvizPlugin">
+    <description>GPS mapviz plugin.</description>
   </class>
   <class name="mapviz_plugins/navsat" type="mapviz_plugins::NavSatPlugin" base_class_type="mapviz::MapvizPlugin">
     <description>NavSat mapviz plugin.</description>
