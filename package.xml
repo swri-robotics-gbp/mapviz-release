@@ -1,6 +1,6 @@
 <package format="2">
   <name>multires_image</name>
-  <version>0.2.4</version>
+  <version>0.2.5</version>
   <description>
 
      multires_image
@@ -13,7 +13,6 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>libopencv-dev</depend>
   <depend>libqt5-core</depend>
   <depend>libqt5-gui</depend>
   <depend>libqt5-opengl</depend>
@@ -22,6 +21,7 @@
   <depend>mapviz</depend>
   <depend>pluginlib</depend>
   <depend>roscpp</depend>
+  <depend>rospy</depend>
   <depend>swri_math_util</depend>
   <depend>swri_transform_util</depend>
   <depend>swri_yaml_util</depend>
