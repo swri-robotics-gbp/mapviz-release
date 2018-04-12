@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2017, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,64 +27,43 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_CONFIG_ITEM_H_
-#define MAPVIZ_CONFIG_ITEM_H_
+#ifndef MAPVIZ_VIDEO_WRITER_H
+#define MAPVIZ_VIDEO_WRITER_H
 
-// C++ standard libraries
-#include <string>
-#include <vector>
+#include <QObject>
+#include <QMutex>
+#include <QImage>
 
-// QT libraries
-#include <QWidget>
-#include <QLabel>
-#include <QMouseEvent>
-#include <QListWidgetItem>
+#include <boost/shared_ptr.hpp>
 
-// Auto-generated UI files
-#include "ui_configitem.h"
+#ifndef Q_MOC_RUN
+#include <opencv2/highgui/highgui.hpp>
+#endif
 
 namespace mapviz
 {
-  class ConfigItem : public QWidget
+  class VideoWriter : public QObject
   {
     Q_OBJECT
 
   public:
-    explicit ConfigItem(QWidget *parent = 0, Qt::WFlags flags = 0);
-    ~ConfigItem();
+    VideoWriter() :
+        video_mutex_(QMutex::Recursive)
+    {}
 
-    void SetName(QString name);
-    void SetType(QString type);
-    void SetWidget(QWidget* widget);
-    
-    void SetListItem(QListWidgetItem* item) { item_ = item; }
-    bool Collapsed() const { return ui_.content->isHidden(); }
-    QString Name() const { return name_; }
-
-    Ui::configitem ui_;
-
-  Q_SIGNALS:
-    void UpdateSizeHint();
-    void ToggledDraw(QListWidgetItem* plugin, bool visible);
-    void RemoveRequest(QListWidgetItem* plugin);
+    bool initializeWriter(const std::string& directory, int width, int height);
+    bool isRecording();
+    void stop();
 
   public Q_SLOTS:
-    void Hide();
-    void EditName();
-    void Remove();
-    void ToggleDraw(bool toggled);
+    void processFrame(QImage frame);
 
   private:
-    virtual void contextMenuEvent(QContextMenuEvent *event) override;
-
-  protected:
-    QListWidgetItem* item_;
-    QString name_;
-    QString type_;
-    QAction* edit_name_action_;
-    QAction* remove_item_action_;
-    bool visible_;
+    int height_;
+    int width_;
+    QMutex video_mutex_;
+    boost::shared_ptr<cv::VideoWriter> video_writer_;
   };
 }
 
-#endif  // MAPVIZ_CONFIG_ITEM_H_
+#endif //MAPVIZ_VIDEO_WRITER_H
