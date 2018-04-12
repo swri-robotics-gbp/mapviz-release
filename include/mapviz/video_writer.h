@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2017, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,21 +27,43 @@
 //
 // *****************************************************************************
 
-#include "mapviz/mapviz.h"
-#include "mapviz/mapviz_application.h"
-#include <GL/glut.h>
+#ifndef MAPVIZ_VIDEO_WRITER_H
+#define MAPVIZ_VIDEO_WRITER_H
 
-int main(int argc, char **argv)
+#include <QObject>
+#include <QMutex>
+#include <QImage>
+
+#include <boost/shared_ptr.hpp>
+
+#ifndef Q_MOC_RUN
+#include <opencv2/highgui/highgui.hpp>
+#endif
+
+namespace mapviz
 {
-  // Initialize QT
-  mapviz::MapvizApplication app(argc, argv);
+  class VideoWriter : public QObject
+  {
+    Q_OBJECT
 
-  // Initialize glut (for displaying text)
-  glutInit(&argc, argv);
+  public:
+    VideoWriter() :
+        video_mutex_(QMutex::Recursive)
+    {}
 
-  // Start mapviz
-  mapviz::Mapviz mapviz(true, argc, argv);
-  mapviz.show();
+    bool initializeWriter(const std::string& directory, int width, int height);
+    bool isRecording();
+    void stop();
 
-  return app.exec();
+  public Q_SLOTS:
+    void processFrame(QImage frame);
+
+  private:
+    int height_;
+    int width_;
+    QMutex video_mutex_;
+    boost::shared_ptr<cv::VideoWriter> video_writer_;
+  };
 }
+
+#endif //MAPVIZ_VIDEO_WRITER_H
