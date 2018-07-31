@@ -53,10 +53,9 @@ namespace mapviz_plugins
 {
   RobotImagePlugin::RobotImagePlugin() :
     config_widget_(new QWidget()),
-    width_(2.0),
-    height_(1.0),
-    offset_x_(0.0),
-    offset_y_(0.0),
+    width_(1),
+    height_(1),
+    image_ratio_(1.0),
     texture_loaded_(false),
     transformed_(false)
   {
@@ -79,11 +78,9 @@ namespace mapviz_plugins
     QObject::connect(ui_.frame, SIGNAL(editingFinished()), this, SLOT(FrameEdited()));
     QObject::connect(ui_.width, SIGNAL(valueChanged(double)), this, SLOT(WidthChanged(double)));
     QObject::connect(ui_.height, SIGNAL(valueChanged(double)), this, SLOT(HeightChanged(double)));
-    QObject::connect(ui_.offset_x, SIGNAL(valueChanged(double)), this, SLOT(OffsetXChanged(double)));
-    QObject::connect(ui_.offset_y, SIGNAL(valueChanged(double)), this, SLOT(OffsetYChanged(double)));
-
-    ui_.offset_x->setMinimum(-99.99); //default is 0.0 but negative offset must be supported
-    ui_.offset_y->setMinimum(-99.99);
+    QObject::connect(ui_.ratio_equal, SIGNAL(toggled(bool)), this, SLOT(RatioEqualToggled(bool)));
+    QObject::connect(ui_.ratio_custom, SIGNAL(toggled(bool)), this, SLOT(RatioCustomToggled(bool)));
+    QObject::connect(ui_.ratio_original, SIGNAL(toggled(bool)), this, SLOT(RatioOriginalToggled(bool)));
   }
 
   RobotImagePlugin::~RobotImagePlugin()
@@ -131,6 +128,12 @@ namespace mapviz_plugins
   void RobotImagePlugin::WidthChanged(double value)
   {
     width_ = value;
+    if( ui_.ratio_equal->isChecked()){
+      ui_.height->setValue( width_ );
+    }
+    else if( ui_.ratio_original->isChecked()){
+      ui_.height->setValue( width_ * image_ratio_ );
+    }
     UpdateShape();
   }
 
@@ -140,26 +143,40 @@ namespace mapviz_plugins
     UpdateShape();
   }
 
-  void RobotImagePlugin::OffsetXChanged(double value)
+  void RobotImagePlugin::RatioEqualToggled(bool toggled)
   {
-    offset_x_ = value;
-    UpdateShape();
+    if( toggled )
+    {
+      ui_.height->setValue(width_);
+      ui_.height->setEnabled(false);
+      UpdateShape();
+    }
   }
 
-  void RobotImagePlugin::OffsetYChanged(double value)
+  void RobotImagePlugin::RatioCustomToggled(bool toggled)
   {
-    offset_y_ = value;
-    UpdateShape();
+    if( toggled )
+    {
+      ui_.height->setEnabled(true);
+    }
+  }
+
+  void RobotImagePlugin::RatioOriginalToggled(bool toggled)
+  {
+    if( toggled )
+    {
+      ui_.height->setValue(width_*image_ratio_);
+      ui_.height->setEnabled(false);
+      UpdateShape();
+    }
   }
 
   void RobotImagePlugin::UpdateShape()
   {
-    double hw = 0.5*width_; //half width
-    double hh = 0.5*height_; //half height
-    top_left_ = tf::Point(offset_x_ - hw, offset_y_ + hh, 0);
-    top_right_ = tf::Point(offset_x_ + hw, offset_y_ + hh, 0);
-    bottom_left_ = tf::Point(offset_x_ - hw, offset_y_ - hh, 0);
-    bottom_right_ = tf::Point(offset_x_ + hw, offset_y_ - hh, 0);
+    top_left_ = tf::Point(-width_ / 2.0, height_ / 2.0, 0);
+    top_right_ = tf::Point(width_ / 2.0, height_ / 2.0, 0);
+    bottom_left_ = tf::Point(-width_ / 2.0, -height_/2.0, 0);
+    bottom_right_ = tf::Point(width_ / 2.0, -height_ / 2.0, 0);
   }
 
   void RobotImagePlugin::PrintError(const std::string& message)
@@ -200,7 +217,6 @@ namespace mapviz_plugins
       glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(texture_id_));
 
       glBegin(GL_QUADS);
-
 
       glTexCoord2f(0, 1); glVertex2d(top_left_transformed_.x(), top_left_transformed_.y());
       glTexCoord2f(1, 1); glVertex2d(top_right_transformed_.x(), top_right_transformed_.y());
@@ -254,6 +270,7 @@ namespace mapviz_plugins
       {
         int width = image_.width();
         int height = image_.height();
+        image_ratio_ = (double)height / (double)width;
 
         float max_dim = std::max(width, height);
         dimension_ = static_cast<int>(std::pow(2, std::ceil(std::log(max_dim) / std::log(2.0f))));
@@ -279,6 +296,10 @@ namespace mapviz_plugins
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         texture_loaded_ = true;
+        if( ui_.ratio_original->isChecked() )
+        {
+          RatioOriginalToggled(true);
+        }
       }
       else
       {
@@ -317,16 +338,22 @@ namespace mapviz_plugins
       ui_.height->setValue(height_);
     }
 
-    if (node["offset_x"])
+    if (node["ratio"])
     {
-      node["offset_x"] >> offset_x_;
-      ui_.offset_x->setValue(offset_x_);
-    }
-
-    if (node["offset_y"])
-    {
-      node["offset_y"] >> offset_y_;
-      ui_.offset_y->setValue(offset_y_);
+      std::string value;
+      node["ratio"] >> value;
+      if(value == "equal")
+      {
+        ui_.ratio_equal->setChecked(true);
+      }
+      else if(value == "custom")
+      {
+        ui_.ratio_custom->setChecked(true);
+      }
+      else if(value == "original")
+      {
+        ui_.ratio_original->setChecked(true);
+      }
     }
 
     UpdateShape();
@@ -340,8 +367,18 @@ namespace mapviz_plugins
     emitter << YAML::Key << "image" << YAML::Value << ui_.image->text().toStdString();
     emitter << YAML::Key << "width" << YAML::Value << width_;
     emitter << YAML::Key << "height" << YAML::Value << height_;
-    emitter << YAML::Key << "offset_x" << YAML::Value << offset_x_;
-    emitter << YAML::Key << "offset_y" << YAML::Value << offset_y_;
+    if( ui_.ratio_custom->isChecked())
+    {
+      emitter << YAML::Key << "ratio" << YAML::Value << "custom";
+    }
+    else if( ui_.ratio_equal->isChecked())
+    {
+      emitter << YAML::Key << "ratio" << YAML::Value << "equal";
+    }
+    else if( ui_.ratio_original->isChecked())
+    {
+      emitter << YAML::Key << "ratio" << YAML::Value << "original";
+    }
   }
 }
 

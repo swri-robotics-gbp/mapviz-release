@@ -198,7 +198,7 @@ namespace mapviz_plugins
     int closest_point = 0;
     double closest_distance = std::numeric_limits<double>::max();
 
-    QPointF point = event->posF();
+    QPointF point = event->localPos();
     stu::Transform transform;
     std::string frame = ui_.frame->text().toStdString();
     if (tf_manager_.GetTransform(target_frame_, frame, transform))
@@ -230,7 +230,7 @@ namespace mapviz_plugins
       else
       {
         is_mouse_down_ = true;
-        mouse_down_pos_ = event->posF();
+        mouse_down_pos_ = event->localPos();
         mouse_down_time_ = QDateTime::currentMSecsSinceEpoch();
         return false;
       }
@@ -253,7 +253,7 @@ namespace mapviz_plugins
     std::string frame = ui_.frame->text().toStdString();
     if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < vertices_.size())
     {
-      QPointF point = event->posF();
+      QPointF point = event->localPos();
       stu::Transform transform;
       if (tf_manager_.GetTransform(frame, target_frame_, transform))
       {
@@ -269,7 +269,7 @@ namespace mapviz_plugins
     }
     else if (is_mouse_down_)
     {
-      qreal distance = QLineF(mouse_down_pos_, event->posF()).length();
+      qreal distance = QLineF(mouse_down_pos_, event->localPos()).length();
       qint64 msecsDiff = QDateTime::currentMSecsSinceEpoch() - mouse_down_time_;
 
       // Only fire the event if the mouse has moved less than the maximum distance
@@ -278,7 +278,7 @@ namespace mapviz_plugins
       // or just holding the cursor in place.
       if (msecsDiff < max_ms_ && distance <= max_distance_)
       {
-        QPointF point = event->posF();
+        QPointF point = event->localPos();
 
 
         QPointF transformed = map_canvas_->MapGlCoordToFixedFrame(point);
@@ -305,7 +305,7 @@ namespace mapviz_plugins
   {
     if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < vertices_.size())
     {
-      QPointF point = event->posF();
+      QPointF point = event->localPos();
       stu::Transform transform;
       std::string frame = ui_.frame->text().toStdString();
       if (tf_manager_.GetTransform(frame, target_frame_, transform))
