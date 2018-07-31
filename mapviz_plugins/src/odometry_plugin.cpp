@@ -433,4 +433,3 @@ namespace mapviz_plugins
   }
 }
 
-
