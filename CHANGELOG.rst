@@ -2,6 +2,9 @@
 Changelog for package tile_map
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.0.10 (2018-07-31)
+-------------------
+
 0.0.9 (2018-04-12)
 ------------------
 * Bug fix in TileMap. GenTexture was invoked over and over again (`#560 <https://github.com/swri-robotics/mapviz/issues/560>`_)
