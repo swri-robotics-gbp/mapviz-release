@@ -1,3 +1,30 @@
+## mapviz (melodic) - 0.2.6-0
+
+The packages in the `mapviz` repository were released into the `melodic` distro by running `/usr/bin/bloom-release -r melodic -t melodic mapviz` on `Tue, 31 Jul 2018 14:41:18 -0000`
+
+These packages were released:
+- `mapviz`
+- `mapviz_plugins`
+- `multires_image`
+- `tile_map`
+
+Version of package(s) in repository `mapviz`:
+
+- upstream repository: https://github.com/swri-robotics/mapviz.git
+- release repository: https://github.com/swri-robotics-gbp/mapviz-release.git
+- rosdistro version: `0.2.5-0`
+- old version: `0.2.5-0`
+- new version: `0.2.6-0`
+
+Versions of tools used:
+
+- bloom version: `0.6.6`
+- catkin_pkg version: `0.4.7`
+- rosdep version: `0.12.2`
+- rosdistro version: `0.6.8`
+- vcstools version: `0.1.40`
+
+
 ## mapviz (lunar) - 0.2.6-0
 
 The packages in the `mapviz` repository were released into the `lunar` distro by running `/usr/bin/bloom-release -r lunar -t lunar mapviz` on `Tue, 31 Jul 2018 14:32:06 -0000`
