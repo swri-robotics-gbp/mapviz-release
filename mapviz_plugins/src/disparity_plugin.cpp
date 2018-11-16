@@ -176,9 +176,9 @@ namespace mapviz_plugins
     }
     else
     {
-        disparity_sub_ = node_.subscribe(topic_, 1, &DisparityPlugin::disparityCallback, this);
+      disparity_sub_ = node_.subscribe(topic_, 1, &DisparityPlugin::disparityCallback, this);
 
-        ROS_INFO("Subscribing to %s", topic_.c_str());
+      ROS_INFO("Subscribing to %s", topic_.c_str());
     }
   }
   void DisparityPlugin::SelectTopic()
@@ -189,14 +189,12 @@ namespace mapviz_plugins
     if(topic.name.empty())
     {
       topic.name.clear();
-      TopicEdited();
     }
     if (!topic.name.empty())
     {
       ui_.topic->setText(QString::fromStdString(topic.name));
-      TopicEdited();
     }
-
+    TopicEdited();
   }
 
   void DisparityPlugin::TopicEdited()
@@ -216,6 +214,7 @@ namespace mapviz_plugins
     }
     if (topic != topic_)
     {
+      PrintWarning("Topic is Hidden");
       initialized_ = false;
       has_message_ = false;
       topic_ = topic;
