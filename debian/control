@@ -1,0 +1,12 @@
+Source: ros-indigo-mapviz
+Section: misc
+Priority: extra
+Maintainer: Marc Alban <malban@swri.org>
+Build-Depends: debhelper (>= 9.0.0), freeglut3-dev, libglew-dev, libxi-dev, libxmu-dev, pkg-config, ros-indigo-catkin, ros-indigo-cv-bridge, ros-indigo-image-transport, ros-indigo-libqt-dev, ros-indigo-libqt-opengl-dev, ros-indigo-marti-common-msgs, ros-indigo-message-generation, ros-indigo-pluginlib, ros-indigo-qt-qmake, ros-indigo-rosapi, ros-indigo-roscpp, ros-indigo-rqt-gui, ros-indigo-rqt-gui-cpp, ros-indigo-std-srvs, ros-indigo-swri-transform-util, ros-indigo-swri-yaml-util, ros-indigo-tf
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-indigo-mapviz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freeglut3-dev, libglew-dev, libxi-dev, libxmu-dev, ros-indigo-cv-bridge, ros-indigo-image-transport, ros-indigo-libqt-core, ros-indigo-libqt-opengl, ros-indigo-marti-common-msgs, ros-indigo-message-runtime, ros-indigo-pluginlib, ros-indigo-rosapi, ros-indigo-roscpp, ros-indigo-rqt-gui, ros-indigo-rqt-gui-cpp, ros-indigo-std-srvs, ros-indigo-swri-transform-util, ros-indigo-swri-yaml-util, ros-indigo-tf
+Description: mapviz
