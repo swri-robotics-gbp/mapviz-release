@@ -85,6 +85,9 @@ namespace mapviz_plugins
     void HeightChanged(double value);
     void OffsetXChanged(double value);
     void OffsetYChanged(double value);
+    void RatioEqualToggled(bool toggled);
+    void RatioCustomToggled(bool toggled);
+    void RatioOriginalToggled(bool toggled);
 
   private:
     Ui::robot_image_config ui_;
@@ -94,6 +97,7 @@ namespace mapviz_plugins
     double height_; //image height, corresponds to robot width
     double offset_x_; //offset of image center from robot frame along x axis
     double offset_y_; //offset of image center from robot frame along y axis
+    double image_ratio_;
 
     std::string filename_;
     QImage      image_;
