@@ -1,0 +1,13 @@
+Source: ros-melodic-tile-map
+Section: misc
+Priority: extra
+Maintainer: Marc Alban <malban@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libglew-dev, libjsoncpp-dev, ros-melodic-catkin, ros-melodic-libqt-dev, ros-melodic-libqt-opengl-dev, ros-melodic-mapviz, ros-melodic-pluginlib, ros-melodic-qt-qmake, ros-melodic-roscpp, ros-melodic-swri-math-util, ros-melodic-swri-transform-util, ros-melodic-swri-yaml-util, ros-melodic-tf
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-melodic-tile-map
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libglew-dev, libjsoncpp1, ros-melodic-libqt-core, ros-melodic-libqt-opengl, ros-melodic-mapviz, ros-melodic-pluginlib, ros-melodic-roscpp, ros-melodic-swri-math-util, ros-melodic-swri-transform-util, ros-melodic-swri-yaml-util, ros-melodic-tf
+Description: Tile map provides a slippy map style interface for visualizing OpenStreetMap and GooleMap tiles.
+ A mapviz visualization plug-in is also implemented
