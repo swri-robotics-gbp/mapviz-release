@@ -1,0 +1,12 @@
+Source: ros-kinetic-mapviz
+Section: misc
+Priority: extra
+Maintainer: Marc Alban <malban@swri.org>
+Build-Depends: debhelper (>= 9.0.0), freeglut3-dev, libglew-dev, libxi-dev, libxmu-dev, pkg-config, ros-kinetic-catkin, ros-kinetic-cv-bridge, ros-kinetic-image-transport, ros-kinetic-libqt-dev, ros-kinetic-libqt-opengl-dev, ros-kinetic-marti-common-msgs, ros-kinetic-message-generation, ros-kinetic-pluginlib, ros-kinetic-qt-qmake, ros-kinetic-rosapi, ros-kinetic-roscpp, ros-kinetic-rqt-gui, ros-kinetic-rqt-gui-cpp, ros-kinetic-std-srvs, ros-kinetic-swri-transform-util, ros-kinetic-swri-yaml-util, ros-kinetic-tf
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-kinetic-mapviz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freeglut3-dev, libglew-dev, libxi-dev, libxmu-dev, ros-kinetic-cv-bridge, ros-kinetic-image-transport, ros-kinetic-libqt-core, ros-kinetic-libqt-opengl, ros-kinetic-marti-common-msgs, ros-kinetic-message-runtime, ros-kinetic-pluginlib, ros-kinetic-rosapi, ros-kinetic-roscpp, ros-kinetic-rqt-gui, ros-kinetic-rqt-gui-cpp, ros-kinetic-std-srvs, ros-kinetic-swri-transform-util, ros-kinetic-swri-yaml-util, ros-kinetic-tf
+Description: mapviz
