@@ -1,3 +1,30 @@
+## mapviz (lunar) - 1.0.1-0
+
+The packages in the `mapviz` repository were released into the `lunar` distro by running `/usr/bin/bloom-release -r lunar -t lunar mapviz` on `Fri, 25 Jan 2019 14:56:45 -0000`
+
+These packages were released:
+- `mapviz`
+- `mapviz_plugins`
+- `multires_image`
+- `tile_map`
+
+Version of package(s) in repository `mapviz`:
+
+- upstream repository: https://github.com/swri-robotics/mapviz.git
+- release repository: https://github.com/swri-robotics-gbp/mapviz-release.git
+- rosdistro version: `1.0.0-0`
+- old version: `1.0.0-0`
+- new version: `1.0.1-0`
+
+Versions of tools used:
+
+- bloom version: `0.7.1`
+- catkin_pkg version: `0.4.10`
+- rosdep version: `0.14.0`
+- rosdistro version: `0.7.1`
+- vcstools version: `0.1.40`
+
+
 ## mapviz (kinetic) - 1.0.1-0
 
 The packages in the `mapviz` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release -r kinetic -t kinetic mapviz` on `Fri, 25 Jan 2019 14:47:13 -0000`
