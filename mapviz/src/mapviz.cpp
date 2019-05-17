@@ -329,6 +329,8 @@ void Mapviz::Initialize()
       connect(&profile_timer_, SIGNAL(timeout()), this, SLOT(HandleProfileTimer()));
     }
 
+    setFocus(); // Set the main window as focused object, prevent other fields from obtaining focus at startup
+
     initialized_ = true;
   }
 }
@@ -889,6 +891,7 @@ void Mapviz::SaveConfig()
   dialog.setFileMode(QFileDialog::AnyFile);
   dialog.setAcceptMode(QFileDialog::AcceptSave);
   dialog.setNameFilter(tr("Mapviz Config Files (*.mvc)"));
+  dialog.setDefaultSuffix("mvc");
 
   dialog.exec();
 
