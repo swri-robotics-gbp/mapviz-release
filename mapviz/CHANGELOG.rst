@@ -2,6 +2,9 @@
 Changelog for package mapviz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.2.0 (2019-09-04)
+------------------
+
 1.1.1 (2019-05-17)
 ------------------
 * Set main window as in focus on start `#630 <https://github.com/swri-robotics/mapviz/issues/630>`_
