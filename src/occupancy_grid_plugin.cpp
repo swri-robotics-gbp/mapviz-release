@@ -350,6 +350,8 @@ namespace mapviz_plugins
           color_buffer_.data());
 
     glBindTexture(GL_TEXTURE_2D, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
   }
 
 
@@ -517,6 +519,18 @@ namespace mapviz_plugins
       double alpha;
       node["alpha"] >> alpha;
       ui_.alpha->setValue(alpha);
+    }
+
+    if (node["scheme"])
+    {
+      std::string scheme;
+      node["scheme"] >> scheme;
+      int index = ui_.color_scheme->findText(QString::fromStdString(scheme), Qt::MatchExactly);
+      if (index >= 0)
+      {
+        ui_.color_scheme->setCurrentIndex(index);
+      }
+      colorSchemeUpdated(QString::fromStdString(scheme));
     }
 
     TopicGridEdited();
