@@ -99,6 +99,8 @@ namespace mapviz_plugins
     {
       initialized_ = false;
       markers_.clear();
+      marker_visible_.clear();
+      ui_.nsList->clear();
       has_message_ = false;
       PrintWarning("No messages received.");
 
@@ -167,6 +169,16 @@ namespace mapviz_plugins
       markerData.transformed = true;
       markerData.source_frame = marker.header.frame_id;
 
+      if (marker_visible_.emplace(marker.ns, true).second)
+      {
+        QString name_string(marker.ns.c_str());
+        auto* item = new QListWidgetItem(name_string, ui_.nsList);
+        item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+        item->setCheckState(Qt::Unchecked);
+        item->setCheckState(Qt::Checked);
+        //item->setData(Qt::StatusTipRole, layer_string);
+      }
+
 
       // Since orientation was not implemented, many markers publish
       // invalid all-zero orientations, so we need to check for this
@@ -183,11 +195,12 @@ namespace mapviz_plugins
                                      marker.pose.orientation.w);
       }
 
-      markerData.local_transform = tf::Transform(
+      markerData.local_transform = swri_transform_util::Transform(
+        tf::Transform(
           orientation,
           tf::Vector3(marker.pose.position.x,
                       marker.pose.position.y,
-                      marker.pose.position.z));
+                      marker.pose.position.z)));
 
       markerData.points.clear();
       markerData.text = std::string();
@@ -283,15 +296,12 @@ namespace mapviz_plugins
         markerData.display_type == visualization_msgs::Marker::POINTS ||
         markerData.display_type == visualization_msgs::Marker::TRIANGLE_LIST)
       {
-        tf::Transform tfTransform(transform.GetTF());
-        tfTransform *= markerData.local_transform;
-
         markerData.points.reserve(marker.points.size());
         StampedPoint point;
         for (unsigned int i = 0; i < marker.points.size(); i++)
         {
           point.point = tf::Point(marker.points[i].x, marker.points[i].y, marker.points[i].z);
-          point.transformed_point = tfTransform * point.point;
+          point.transformed_point = transform * (markerData.local_transform * point.point);
 
           if (i < marker.colors.size())
           {
@@ -407,6 +417,18 @@ namespace mapviz_plugins
 
   void MarkerPlugin::Draw(double x, double y, double scale)
   {
+    for (size_t i = 0; i < ui_.nsList->count(); i++)
+    {
+      if (ui_.nsList->item(i)->checkState() == Qt::Checked)
+      {
+        marker_visible_[ui_.nsList->item(i)->text().toStdString()] = true;
+      }
+      else
+      {
+        marker_visible_[ui_.nsList->item(i)->text().toStdString()] = false;
+      }
+    }
+
     ros::Time now = ros::Time::now();
 
     for (auto markerIter = markers_.begin(); markerIter != markers_.end(); ++markerIter)
@@ -420,6 +442,11 @@ namespace mapviz_plugins
       }
 
       if (!marker.transformed) {
+        continue;
+      }
+
+      if (!marker_visible_[markerIter->first.first])
+      {
         continue;
       }
 
@@ -627,11 +654,9 @@ namespace mapviz_plugins
         }
         else
         {
-          tf::Transform tfTransform(transform.GetTF());
-          tfTransform *= marker.local_transform;
           for (auto &point : marker.points)
           {
-            point.transformed_point = tfTransform * point.point;
+            point.transformed_point = transform * (marker.local_transform * point.point);
           }
         }
       }
