@@ -175,6 +175,7 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
   connect(canvas_, SIGNAL(Hover(double,double,double)), this, SLOT(Hover(double,double,double)));
   connect(ui_.configs, SIGNAL(ItemsMoved()), this, SLOT(ReorderDisplays()));
   connect(ui_.actionExit, SIGNAL(triggered()), this, SLOT(close()));
+  connect(ui_.actionClear, SIGNAL(triggered()), this, SLOT(ClearConfig()));
   connect(ui_.bg_color, SIGNAL(colorEdited(const QColor &)), this, SLOT(SelectBackgroundColor(const QColor &)));
 
   connect(recenter_button_, SIGNAL(clicked()), this, SLOT(Recenter()));
@@ -885,6 +886,11 @@ void Mapviz::OpenConfig()
   }
 }
 
+void Mapviz::ClearConfig()
+{
+  ClearDisplays();
+}
+
 void Mapviz::SaveConfig()
 {
   QFileDialog dialog(this, "Save Config File");
@@ -910,20 +916,18 @@ void Mapviz::SaveConfig()
     {
       title = path;
     }
-
     title += " - mapviz";
-
     setWindowTitle(QString::fromStdString(title));
-
     Save(path);
   }
 }
 
 void Mapviz::ClearHistory()
 {
+  ROS_DEBUG("Mapviz::ClearHistory()");
   for (auto& plugin: plugins_)
   {
-    plugin.second->ClearHistory();
+    plugin.second->ClearHistory();  
   }
 }
 
@@ -1473,7 +1477,7 @@ void Mapviz::RemoveDisplay(QListWidgetItem* item)
   if (item)
   {
     canvas_->RemovePlugin(plugins_[item]);
-    plugins_[item] = MapvizPluginPtr();
+    plugins_.erase(item);
 
     delete item;
   }
@@ -1488,7 +1492,7 @@ void Mapviz::ClearDisplays()
     QListWidgetItem* item = ui_.configs->takeItem(0);
 
     canvas_->RemovePlugin(plugins_[item]);
-    plugins_[item] = MapvizPluginPtr();
+    plugins_.erase(item);
 
     delete item;
   }
