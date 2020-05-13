@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2019, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,26 +28,33 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/string_plugin.h>
+#include <mapviz_plugins/float_plugin.h>
 
 #include <pluginlib/class_list_macros.h>
 #include <mapviz/select_topic_dialog.h>
 
+#include <std_msgs/Float32.h>
+#include <std_msgs/Float64.h>
+#include <marti_common_msgs/Float32Stamped.h>
+#include <marti_common_msgs/Float64Stamped.h>
+#include <marti_sensor_msgs/Velocity.h>
+
 #include <QFontDialog>
 
-PLUGINLIB_EXPORT_CLASS(mapviz_plugins::StringPlugin, mapviz::MapvizPlugin)
+PLUGINLIB_EXPORT_CLASS(mapviz_plugins::FloatPlugin, mapviz::MapvizPlugin)
 
 namespace mapviz_plugins
 {
-  const char* StringPlugin::COLOR_KEY = "color";
-  const char* StringPlugin::FONT_KEY = "font";
-  const char* StringPlugin::TOPIC_KEY = "topic";
-  const char* StringPlugin::ANCHOR_KEY = "anchor";
-  const char* StringPlugin::UNITS_KEY = "units";
-  const char* StringPlugin::OFFSET_X_KEY = "offset_x";
-  const char* StringPlugin::OFFSET_Y_KEY = "offset_y";
+  const char* FloatPlugin::COLOR_KEY = "color";
+  const char* FloatPlugin::FONT_KEY = "font";
+  const char* FloatPlugin::TOPIC_KEY = "topic";
+  const char* FloatPlugin::ANCHOR_KEY = "anchor";
+  const char* FloatPlugin::UNITS_KEY = "units";
+  const char* FloatPlugin::OFFSET_X_KEY = "offset_x";
+  const char* FloatPlugin::OFFSET_Y_KEY = "offset_y";
+  const char* FloatPlugin::POSTFIX_KEY = "postfix_text";
 
-  StringPlugin::StringPlugin() :
+  FloatPlugin::FloatPlugin() :
     config_widget_(new QWidget()),
     anchor_(TOP_LEFT),
     units_(PIXELS),
@@ -76,6 +83,7 @@ namespace mapviz_plugins
     QObject::connect(ui_.offsety, SIGNAL(valueChanged(int)), this, SLOT(SetOffsetY(int)));
     QObject::connect(ui_.font_button, SIGNAL(clicked()), this, SLOT(SelectFont()));
     QObject::connect(ui_.color, SIGNAL(colorEdited(const QColor &)), this, SLOT(SelectColor()));
+    QObject::connect(ui_.postfix, SIGNAL(editingFinished()), this, SLOT(PostfixEdited()));
 
     font_.setFamily(tr("Helvetica"));
     ui_.font_button->setFont(font_);
@@ -84,22 +92,22 @@ namespace mapviz_plugins
     ui_.color->setColor(color_);
   }
 
-  StringPlugin::~StringPlugin()
+  FloatPlugin::~FloatPlugin()
   {
   }
 
-  bool StringPlugin::Initialize(QGLWidget* canvas)
+  bool FloatPlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
     return true;
   }
 
-  void StringPlugin::Draw(double x, double y, double scale)
+  void FloatPlugin::Draw(double x, double y, double scale)
   {
     // This plugin doesn't do any  OpenGL drawing.
   }
 
-  void StringPlugin::Paint(QPainter* painter, double x, double y, double scale)
+  void FloatPlugin::Paint(QPainter* painter, double x, double y, double scale)
   {
     if (has_message_)
     {
@@ -134,7 +142,7 @@ namespace mapviz_plugins
     }
   }
 
-  void StringPlugin::PaintText(QPainter* painter)
+  void FloatPlugin::PaintText(QPainter* painter)
   {
     // Calculate the correct offsets and dimensions
     int x_offset = offset_x_;
@@ -194,7 +202,7 @@ namespace mapviz_plugins
     painter->drawStaticText(ulPoint, message_);
   }
 
-  void StringPlugin::LoadConfig(const YAML::Node& node, const std::string& path)
+  void FloatPlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
     if (node[TOPIC_KEY])
     {
@@ -240,9 +248,15 @@ namespace mapviz_plugins
       offset_y_ = node[OFFSET_Y_KEY].as<int>();
       ui_.offsety->setValue(offset_y_);
     }
+
+    if (node[POSTFIX_KEY])
+    {
+      postfix_ = node[POSTFIX_KEY].as<std::string>();
+      ui_.postfix->setText(QString(postfix_.c_str()));
+    }
   }
 
-  void StringPlugin::SaveConfig(YAML::Emitter& emitter, const std::string& path)
+  void FloatPlugin::SaveConfig(YAML::Emitter& emitter, const std::string& path)
   {
     emitter << YAML::Key << FONT_KEY << YAML::Value << font_.toString().toStdString();
     emitter << YAML::Key << COLOR_KEY << YAML::Value << color_.name().toStdString();
@@ -251,35 +265,41 @@ namespace mapviz_plugins
     emitter << YAML::Key << UNITS_KEY << YAML::Value << UnitsToString(units_);
     emitter << YAML::Key << OFFSET_X_KEY << YAML::Value << offset_x_;
     emitter << YAML::Key << OFFSET_Y_KEY << YAML::Value << offset_y_;
+    emitter << YAML::Key << POSTFIX_KEY << YAML::Value << postfix_;
   }
 
-  QWidget* StringPlugin::GetConfigWidget(QWidget* parent)
+  QWidget* FloatPlugin::GetConfigWidget(QWidget* parent)
   {
     config_widget_->setParent(parent);
     return config_widget_;
   }
 
-  void StringPlugin::PrintError(const std::string& message)
+  void FloatPlugin::PrintError(const std::string& message)
   {
     PrintErrorHelper(ui_.status, message);
   }
 
-  void StringPlugin::PrintInfo(const std::string& message)
+  void FloatPlugin::PrintInfo(const std::string& message)
   {
     PrintInfoHelper(ui_.status, message);
   }
 
-  void StringPlugin::PrintWarning(const std::string& message)
+  void FloatPlugin::PrintWarning(const std::string& message)
   {
     PrintWarningHelper(ui_.status, message);
   }
 
-  void StringPlugin::SelectColor()
+  void FloatPlugin::SelectColor()
   {
     color_ = ui_.color->color();
   }
 
-  void StringPlugin::SelectFont()
+  void FloatPlugin::PostfixEdited()
+  {
+    postfix_ = ui_.postfix->text().toStdString();
+  }
+
+  void FloatPlugin::SelectFont()
   {
     bool ok;
     QFont font = QFontDialog::getFont(&ok, font_, canvas_);
@@ -292,10 +312,15 @@ namespace mapviz_plugins
     }
   }
 
-  void StringPlugin::SelectTopic()
+  void FloatPlugin::SelectTopic()
   {
-    ros::master::TopicInfo topic = mapviz::SelectTopicDialog::selectTopic(
-        "std_msgs/String", "marti_common_msgs/StringStamped");
+    std::vector<std::string> topics;
+    topics.push_back("std_msgs/Float32");
+    topics.push_back("std_msgs/Float64");
+    topics.push_back("marti_common_msgs/Float32Stamped");
+    topics.push_back("marti_common_msgs/Float64Stamped");
+    topics.push_back("marti_sensor_msgs/Velocity");
+    ros::master::TopicInfo topic = mapviz::SelectTopicDialog::selectTopic(topics);
 
     if (!topic.name.empty())
     {
@@ -304,7 +329,7 @@ namespace mapviz_plugins
     }
   }
 
-  void StringPlugin::TopicEdited()
+  void FloatPlugin::TopicEdited()
   {
     std::string topic = ui_.topic->text().trimmed().toStdString();
     if (topic != topic_)
@@ -313,19 +338,19 @@ namespace mapviz_plugins
       has_message_ = false;
       PrintWarning("No messages received.");
 
-      string_sub_.shutdown();
+      float_sub_.shutdown();
 
       topic_ = topic;
       if (!topic.empty())
       {
-        string_sub_ = node_.subscribe<topic_tools::ShapeShifter>(topic_, 1, &StringPlugin::stringCallback, this);
+        float_sub_ = node_.subscribe<topic_tools::ShapeShifter>(topic_, 1, &FloatPlugin::floatCallback, this);
 
         ROS_INFO("Subscribing to %s", topic_.c_str());
       }
     }
   }
 
-  void StringPlugin::SetAnchor(QString anchor)
+  void FloatPlugin::SetAnchor(QString anchor)
   {
     if (anchor == "top left")
     {
@@ -365,7 +390,7 @@ namespace mapviz_plugins
     }
   }
 
-  void StringPlugin::SetUnits(QString units)
+  void FloatPlugin::SetUnits(QString units)
   {
     if (units == "pixels")
     {
@@ -377,12 +402,12 @@ namespace mapviz_plugins
     }
   }
 
-  void StringPlugin::SetOffsetX(int offset)
+  void FloatPlugin::SetOffsetX(int offset)
   {
     offset_x_ = offset;
   }
 
-  void StringPlugin::SetOffsetY(int offset)
+  void FloatPlugin::SetOffsetY(int offset)
   {
     offset_y_ = offset;
   }
@@ -393,16 +418,33 @@ namespace mapviz_plugins
     return msg->getDataType() == ros::message_traits::datatype<T>();
   }
 
-  void StringPlugin::stringCallback(const topic_tools::ShapeShifter::ConstPtr& msg)
+  void FloatPlugin::floatCallback(const topic_tools::ShapeShifter::ConstPtr& msg)
   {
-    if (is_instance<std_msgs::String>(msg))
+    double value = 0.0;
+    if (is_instance<std_msgs::Float32>(msg))
     {
-      message_.setText(QString(msg->instantiate<std_msgs::String>()->data.c_str()));
+      value = msg->instantiate<std_msgs::Float32>()->data;
     }
-    else if (is_instance<marti_common_msgs::StringStamped>(msg))
+    if (is_instance<std_msgs::Float64>(msg))
     {
-      message_.setText(QString(msg->instantiate<marti_common_msgs::StringStamped>()->value.c_str()));
+      value = msg->instantiate<std_msgs::Float64>()->data;
     }
+    else if (is_instance<marti_common_msgs::Float32Stamped>(msg))
+    {
+      value = msg->instantiate<marti_common_msgs::Float32Stamped>()->value;
+    }
+    else if (is_instance<marti_common_msgs::Float64Stamped>(msg))
+    {
+      value = msg->instantiate<marti_common_msgs::Float64Stamped>()->value;
+    }
+    else if (is_instance<marti_sensor_msgs::Velocity>(msg))
+    {
+      value = msg->instantiate<marti_sensor_msgs::Velocity>()->velocity;
+    }
+
+    std::string str = std::to_string(value);
+    str += postfix_;
+    message_.setText(QString(str.c_str()));
 
     message_.prepare(QTransform(), font_);
 
@@ -411,7 +453,7 @@ namespace mapviz_plugins
     initialized_ = true;
   }
 
-  std::string StringPlugin::AnchorToString(StringPlugin::Anchor anchor)
+  std::string FloatPlugin::AnchorToString(FloatPlugin::Anchor anchor)
   {
     std::string anchor_string = "top left";
 
@@ -455,7 +497,7 @@ namespace mapviz_plugins
     return anchor_string;
   }
 
-  std::string StringPlugin::UnitsToString(StringPlugin::Units units)
+  std::string FloatPlugin::UnitsToString(FloatPlugin::Units units)
   {
     std::string units_string = "pixels";
 
