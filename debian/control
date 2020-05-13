@@ -1,0 +1,12 @@
+Source: ros-eloquent-mapviz
+Section: misc
+Priority: optional
+Maintainer: P. J. Reed <preed@swri.org>
+Build-Depends: debhelper (>= 9.0.0), freeglut3-dev, libglew-dev, libqt5core5a, libqt5opengl5-dev, libxi-dev, libxmu-dev, libyaml-cpp-dev, pkg-config, qt5-qmake, ros-eloquent-ament-cmake, ros-eloquent-cv-bridge, ros-eloquent-geometry-msgs, ros-eloquent-image-transport, ros-eloquent-mapviz-interfaces, ros-eloquent-marti-common-msgs, ros-eloquent-pluginlib, ros-eloquent-rclcpp, ros-eloquent-rqt-gui, ros-eloquent-rqt-gui-cpp, ros-eloquent-std-srvs, ros-eloquent-swri-math-util, ros-eloquent-swri-transform-util, ros-eloquent-tf2, ros-eloquent-tf2-geometry-msgs, ros-eloquent-tf2-ros, ros-eloquent-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-eloquent-mapviz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freeglut3-dev, libglew-dev, libqt5core5a, libqt5opengl5, libxi-dev, libxmu-dev, libyaml-cpp-dev, ros-eloquent-cv-bridge, ros-eloquent-geometry-msgs, ros-eloquent-image-transport, ros-eloquent-mapviz-interfaces, ros-eloquent-marti-common-msgs, ros-eloquent-pluginlib, ros-eloquent-rclcpp, ros-eloquent-rqt-gui, ros-eloquent-rqt-gui-cpp, ros-eloquent-std-srvs, ros-eloquent-swri-math-util, ros-eloquent-swri-transform-util, ros-eloquent-tf2, ros-eloquent-tf2-geometry-msgs, ros-eloquent-tf2-ros, ros-eloquent-ros-workspace
+Description: mapviz
