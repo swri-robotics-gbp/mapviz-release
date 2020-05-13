@@ -44,6 +44,9 @@ else()
 endif()
 
 ### OpenGL ###
+if(${CMAKE_VERSION} VERSION_EQUAL "3.11.0" OR ${CMAKE_VERSION} VERSION_GREATER "3.11.0")
+  cmake_policy(SET CMP0072 NEW)
+endif()
 find_package(OpenGL REQUIRED)
 
 ### GLEW ###
@@ -98,7 +101,7 @@ endif()
 add_library(${PROJECT_NAME} ${TILE_SRC_FILES})
 target_link_libraries(${PROJECT_NAME}
   ${Qt_LIBRARIES}
-  ${GLU_LIBRARY}
+  ${OPENGL_glu_LIBRARY}
   ${JSONCPP_LIBRARIES}
   ${catkin_LIBRARIES}
 )
