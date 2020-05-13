@@ -1,0 +1,12 @@
+Source: ros-dashing-mapviz
+Section: misc
+Priority: optional
+Maintainer: P. J. Reed <preed@swri.org>
+Build-Depends: debhelper (>= 9.0.0), freeglut3-dev, libglew-dev, libqt5core5a, libqt5opengl5-dev, libxi-dev, libxmu-dev, libyaml-cpp-dev, pkg-config, qt5-qmake, ros-dashing-ament-cmake, ros-dashing-cv-bridge, ros-dashing-geometry-msgs, ros-dashing-image-transport, ros-dashing-mapviz-interfaces, ros-dashing-marti-common-msgs, ros-dashing-pluginlib, ros-dashing-rclcpp, ros-dashing-rqt-gui, ros-dashing-rqt-gui-cpp, ros-dashing-std-srvs, ros-dashing-swri-math-util, ros-dashing-swri-transform-util, ros-dashing-tf2, ros-dashing-tf2-geometry-msgs, ros-dashing-tf2-ros, ros-dashing-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-dashing-mapviz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freeglut3-dev, libglew-dev, libqt5core5a, libqt5opengl5, libxi-dev, libxmu-dev, libyaml-cpp-dev, ros-dashing-cv-bridge, ros-dashing-geometry-msgs, ros-dashing-image-transport, ros-dashing-mapviz-interfaces, ros-dashing-marti-common-msgs, ros-dashing-pluginlib, ros-dashing-rclcpp, ros-dashing-rqt-gui, ros-dashing-rqt-gui-cpp, ros-dashing-std-srvs, ros-dashing-swri-math-util, ros-dashing-swri-transform-util, ros-dashing-tf2, ros-dashing-tf2-geometry-msgs, ros-dashing-tf2-ros, ros-dashing-ros-workspace
+Description: mapviz
