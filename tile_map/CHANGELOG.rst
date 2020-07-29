@@ -2,6 +2,11 @@
 Changelog for package tile_map
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.4.0 (2020-07-28)
+------------------
+* Support ROS Noetic (`#696 <https://github.com/swri-robotics/mapviz/issues/696>`_)
+* Contributors: P. J. Reed
+
 1.3.0 (2020-05-13)
 ------------------
 * Fix linking to OpenGL GLU library (`#675 <https://github.com/swri-robotics/mapviz/issues/675>`_)
