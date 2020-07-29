@@ -1,0 +1,12 @@
+Source: ros-kinetic-multires-image
+Section: misc
+Priority: optional
+Maintainer: Marc Alban <malban@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libqt5opengl5-dev, qt5-qmake, qtbase5-dev, ros-kinetic-catkin, ros-kinetic-cv-bridge, ros-kinetic-geometry-msgs, ros-kinetic-gps-common, ros-kinetic-mapviz, ros-kinetic-pluginlib, ros-kinetic-roscpp, ros-kinetic-swri-math-util, ros-kinetic-swri-transform-util, ros-kinetic-swri-yaml-util, ros-kinetic-tf
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-kinetic-multires-image
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt5core5a, libqt5opengl5, ros-kinetic-cv-bridge, ros-kinetic-geometry-msgs, ros-kinetic-gps-common, ros-kinetic-mapviz, ros-kinetic-pluginlib, ros-kinetic-roscpp, ros-kinetic-rospy, ros-kinetic-swri-math-util, ros-kinetic-swri-transform-util, ros-kinetic-swri-yaml-util, ros-kinetic-tf
+Description: multires_image
