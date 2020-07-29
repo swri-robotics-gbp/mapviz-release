@@ -29,12 +29,9 @@
 
 #include <mapviz/video_writer.h>
 
-#include <rclcpp/rclcpp.hpp>
+#include <ros/ros.h>
 
 #include <opencv2/imgproc/imgproc.hpp>
-
-#include <memory>
-#include <string>
 
 namespace mapviz
 {
@@ -46,20 +43,16 @@ namespace mapviz
       width_ = width;
       height_ = height;
 
-      RCLCPP_INFO(rclcpp::get_logger("mapviz"),
-        "Initializing recording:\nWidth/Height/Filename: %d / %d / %s",
-        width_,
-        height_,
-        directory.c_str());
-      video_writer_ = std::make_shared<cv::VideoWriter>(
+      ROS_INFO("Initializing recording:\nWidth/Height/Filename: %d / %d / %s", width_, height_, directory.c_str() );
+      video_writer_ = boost::make_shared<cv::VideoWriter>(
           directory,
-          CV_FOURCC('M', 'J', 'P', 'G'),
+          cv::VideoWriter::fourcc('M', 'J', 'P', 'G'),
           30,
           cv::Size(width_, height_));
 
       if (!video_writer_->isOpened())
       {
-        RCLCPP_ERROR(rclcpp::get_logger("mapviz"), "Failed to open video file for writing.");
+        ROS_ERROR("Failed to open video file for writing.");
         stop();
         return false;
       }
@@ -77,12 +70,12 @@ namespace mapviz
   {
     try
     {
-      RCLCPP_DEBUG(rclcpp::get_logger("mapviz"), "VideoWriter::processFrame():");
+      ROS_DEBUG_THROTTLE(1.0, "VideoWriter::processFrame()");
       {
         QMutexLocker locker(&video_mutex_);
         if (!video_writer_)
         {
-          RCLCPP_WARN(rclcpp::get_logger("mapviz"), "Got frame, but video writer wasn't open.");
+          ROS_WARN_THROTTLE(1.0, "Got frame, but video writer wasn't open.");
           return;
         }
       }
@@ -96,11 +89,11 @@ namespace mapviz
           // actually BGRA.  Need to convert it to BGR and flip it vertically
           // before giving it to the cv::VideoWriter.
           image = cv::Mat(frame.height(), frame.width(), CV_8UC4, frame.bits());
-          cv::cvtColor(image, temp_image, CV_BGRA2BGR);
+          cv::cvtColor(image, temp_image, cv::COLOR_BGRA2BGR);
           cv::flip(temp_image, image, 0);
           break;
         default:
-          RCLCPP_WARN(rclcpp::get_logger("mapviz"), "Unexpected image format: %d", frame.format());
+          ROS_WARN_THROTTLE(1.0, "Unexpected image format: %d", frame.format());
           return;
       }
 
@@ -108,21 +101,21 @@ namespace mapviz
         QMutexLocker locker(&video_mutex_);
         if (video_writer_)
         {
-          RCLCPP_DEBUG(rclcpp::get_logger("mapviz"), "Writing frame.");
+          ROS_DEBUG_THROTTLE(1.0, "Writing frame.");
           video_writer_->write(image);
         }
       }
     }
     catch (const std::exception& e)
     {
-      RCLCPP_ERROR(rclcpp::get_logger("mapviz"), "Error when processing video frame: %s", e.what());
+      ROS_ERROR_THROTTLE(1.0, "Error when processing video frame: %s", e.what());
     }
   }
 
   void VideoWriter::stop()
   {
-    RCLCPP_INFO(rclcpp::get_logger("mapviz"), "Stopping video recording.");
+    ROS_INFO("Stopping video recording.");
     QMutexLocker locker(&video_mutex_);
     video_writer_.reset();
   }
-}   // namespace mapviz
+}

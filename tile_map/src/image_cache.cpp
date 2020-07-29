@@ -38,7 +38,7 @@
 #include <QNetworkDiskCache>
 #include <QUrl>
 
-#include <rclcpp/logging.hpp>
+#include <ros/ros.h>
 
 namespace tile_map
 {
@@ -59,9 +59,13 @@ namespace tile_map
   {
   }
 
+  Image::~Image()
+  {
+  }
+
   void Image::InitializeImage()
   {
-    image_ = std::make_shared<QImage>();
+    image_ = boost::make_shared<QImage>();
   }
 
   void Image::ClearImage()
@@ -77,17 +81,14 @@ namespace tile_map
 
   const int ImageCache::MAXIMUM_NETWORK_REQUESTS = 6;
 
-  ImageCache::ImageCache(const QString& cache_dir,
-      size_t size,
-      rclcpp::Logger logger) :
+  ImageCache::ImageCache(const QString& cache_dir, size_t size) :
     network_manager_(this),
     cache_dir_(cache_dir),
     cache_(size),
     exit_(false),
     tick_(0),
     cache_thread_(new CacheThread(this)),
-    network_request_semaphore_(MAXIMUM_NETWORK_REQUESTS),
-    logger_(logger)
+    network_request_semaphore_(MAXIMUM_NETWORK_REQUESTS)
   {
     QNetworkDiskCache* disk_cache = new QNetworkDiskCache(this);
     disk_cache->setCacheDirectory(cache_dir_);
@@ -134,12 +135,12 @@ namespace tile_map
     if (!image_ptr)
     {
       // If the image is not in the cache, create a new reference.
-      image_ptr = new ImagePtr(std::make_shared<Image>(uri, uri_hash));
+      image_ptr = new ImagePtr(boost::make_shared<Image>(uri, uri_hash));
       image = *image_ptr;
       if (!cache_.insert(uri_hash, image_ptr))
       {
-        RCLCPP_ERROR(logger_, "FAILED TO CREATE HANDLE: %s", uri.toStdString().c_str());
-        image_ptr = nullptr;
+        ROS_ERROR("FAILED TO CREATE HANDLE: %s", uri.toStdString().c_str());
+        image_ptr = 0;
       }
     }
     else
@@ -186,11 +187,6 @@ namespace tile_map
     unprocessed_mutex_.unlock();
 
     return image;
-  }
-
-  void  ImageCache::SetLogger(rclcpp::Logger logger)
-  {
-    logger_ = logger;
   }
 
   void ImageCache::ProcessRequest(QString uri)
@@ -252,10 +248,8 @@ namespace tile_map
 
   void ImageCache::NetworkError(QNetworkReply::NetworkError error)
   {
-    // See https://doc.qt.io/qt-5/qnetworkreply.html#NetworkError-enum for a
-    // list of possible error codes.
-    // TODO pjr Print friendly strings here instead of numbers.
-    RCLCPP_ERROR(logger_, "NETWORK ERROR: %d", error);
+    ROS_ERROR("NETWORK ERROR: %d", error);
+    // TODO add failure
   }
 
   const int CacheThread::MAXIMUM_SEQUENTIAL_REQUESTS = 12;
