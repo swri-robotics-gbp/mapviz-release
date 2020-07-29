@@ -31,38 +31,23 @@ set(DEPENDENCIES
 find_package(catkin REQUIRED COMPONENTS ${DEPENDENCIES})
 
 ### QT ###
-if("$ENV{ROS_DISTRO}" STRLESS "kinetic")
-  find_package(Qt4 COMPONENTS REQUIRED QtCore QtGui QtOpenGL)
-  set(Qt_FOUND TRUE)
-  set(Qt_INCLUDE_DIRS "${QT_INCLUDE_DIR};${QT_QTCORE_INCLUDE_DIR};${QT_QTGUI_INCLUDE_DIR};${QT_QTOPENGL_INCLUDE_DIR}")
-  set(Qt_LIBRARIES "${QT_QTCORE_LIBRARY};${QT_QTGUI_LIBRARY};${QT_QTOPENGL_LIBRARY}")
-  set(Qt_LIBS
-      Qt4::QtCore
-      Qt4::QtGui
-      Qt4::QtOpenGL
-      )
-else()
-  find_package(Qt5Core REQUIRED)
-  find_package(Qt5Gui REQUIRED)
-  find_package(Qt5OpenGL REQUIRED)
-  find_package(Qt5Widgets REQUIRED)
-  set(Qt_FOUND TRUE)
-  set(Qt_INCLUDE_DIRS "${Qt5Core_INCLUDE_DIRS};${Qt5Gui_INCLUDE_DIRS};${Qt5OpenGL_INCLUDE_DIRS};${Qt5Widgets_INCLUDE_DIRS}")
-  set(Qt_LIBRARIES "${Qt5Core_LIBRARIES};${Qt5Gui_LIBRARIES};${Qt5OpenGL_LIBRARIES};${Qt5Widgets_LIBRARIES}")
-  set(Qt_LIBS
-      Qt5::Core
-      Qt5::Gui
-      Qt5::OpenGL
-      Qt5::Widgets
-      )
-  add_definitions(-DWFlags=WindowFlags)
-endif()
+find_package(Qt5Core REQUIRED)
+find_package(Qt5Gui REQUIRED)
+find_package(Qt5OpenGL REQUIRED)
+find_package(Qt5Widgets REQUIRED)
+# Setting these variable so catkin_package can export Qt as a dependency
+set(Qt_FOUND TRUE)
+set(Qt_INCLUDE_DIRS "${Qt5Core_INCLUDE_DIRS};${Qt5Gui_INCLUDE_DIRS};${Qt5OpenGL_INCLUDE_DIRS};${Qt5Widgets_INCLUDE_DIRS}")
+set(Qt_LIBRARIES "${Qt5Core_LIBRARIES};${Qt5Gui_LIBRARIES};${Qt5OpenGL_LIBRARIES};${Qt5Widgets_LIBRARIES}")
+set(Qt_LIBS
+    Qt5::Core
+    Qt5::Gui
+    Qt5::OpenGL
+    Qt5::Widgets
+    )
+add_definitions(-DWFlags=WindowFlags)
 
-if("$ENV{ROS_DISTRO}" STRLESS "kinetic")
-  find_package(OpenCV 2 REQUIRED)
-else()
-  find_package(OpenCV 3.1 COMPONENTS core imgproc REQUIRED)
-endif()
+find_package(OpenCV COMPONENTS core imgproc REQUIRED)
 
 ### OpenGL ###
 if(${CMAKE_VERSION} VERSION_EQUAL "3.11.0" OR ${CMAKE_VERSION} VERSION_GREATER "3.11.0")
@@ -87,7 +72,6 @@ include_directories(include)
 include_directories(SYSTEM
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
-  ${Qt_INCLUDE_DIRS}
 )
 
 set(UI_FILES
@@ -104,6 +88,7 @@ set(UI_FILES
     ui/measuring_config.ui
     ui/move_base_config.ui
     ui/navsat_config.ui
+    ui/object_config.ui
     ui/occupancy_grid_config.ui
     ui/odometry_config.ui
     ui/path_config.ui
@@ -134,6 +119,7 @@ set(SRC_FILES
     src/measuring_plugin.cpp 
     src/move_base_plugin.cpp
     src/navsat_plugin.cpp
+    src/object_plugin.cpp
     src/occupancy_grid_plugin.cpp
     src/odometry_plugin.cpp 
     src/path_plugin.cpp
@@ -165,6 +151,7 @@ set(HEADER_FILES
     include/${PROJECT_NAME}/measuring_plugin.h
     include/${PROJECT_NAME}/move_base_plugin.h
     include/${PROJECT_NAME}/navsat_plugin.h
+    include/${PROJECT_NAME}/object_plugin.h
     include/${PROJECT_NAME}/occupancy_grid_plugin.h
     include/${PROJECT_NAME}/odometry_plugin.h
     include/${PROJECT_NAME}/path_plugin.h
@@ -181,14 +168,9 @@ set(HEADER_FILES
     include/${PROJECT_NAME}/textured_marker_plugin.h
     include/${PROJECT_NAME}/tf_frame_plugin.h
 )
-    
-if("$ENV{ROS_DISTRO}" STRLESS "kinetic")
-  qt4_wrap_ui(UI_SRC_FILES ${UI_FILES})
-  qt4_wrap_cpp(MOC_FILES ${HEADER_FILES})
-else()
-  qt5_wrap_ui(UI_SRC_FILES ${UI_FILES})
-  qt5_wrap_cpp(MOC_FILES ${HEADER_FILES})
-endif()
+
+qt5_wrap_ui(UI_SRC_FILES ${UI_FILES})
+qt5_wrap_cpp(MOC_FILES ${HEADER_FILES})
 
 add_library(${PROJECT_NAME}
     ${MOC_FILES}
