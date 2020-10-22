@@ -1,50 +1,48 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.10)
+
+if (NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+
+if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
 project(mapviz_plugins)
 
-set(DEPENDENCIES
-  actionlib
-  cv_bridge
-  gps_common
-  image_transport
-  mapviz
-  marti_common_msgs
-  marti_nav_msgs
-  marti_sensor_msgs
-  marti_visualization_msgs
-  move_base_msgs
-  nav_msgs
-  map_msgs
-  pluginlib 
-  roscpp 
-  sensor_msgs
-  std_msgs 
-  stereo_msgs
-  swri_image_util
-  swri_math_util
-  swri_route_util
-  swri_transform_util
-  swri_yaml_util
-  tf 
-  visualization_msgs
-)
-
-find_package(catkin REQUIRED COMPONENTS ${DEPENDENCIES})
+# Ros Packages
+find_package(ament_cmake REQUIRED)
+find_package(ament_index_cpp REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(gps_msgs REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(map_msgs REQUIRED)
+find_package(mapviz REQUIRED)
+find_package(marti_common_msgs REQUIRED)
+find_package(marti_nav_msgs REQUIRED)
+find_package(marti_sensor_msgs REQUIRED)
+find_package(marti_visualization_msgs REQUIRED)
+# find_package(move_base_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(pluginlib REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(stereo_msgs REQUIRED)
+find_package(swri_image_util REQUIRED)
+find_package(swri_math_util REQUIRED)
+find_package(swri_route_util REQUIRED)
+find_package(swri_transform_util REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 ### QT ###
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Widgets REQUIRED)
-# Setting these variable so catkin_package can export Qt as a dependency
-set(Qt_FOUND TRUE)
-set(Qt_INCLUDE_DIRS "${Qt5Core_INCLUDE_DIRS};${Qt5Gui_INCLUDE_DIRS};${Qt5OpenGL_INCLUDE_DIRS};${Qt5Widgets_INCLUDE_DIRS}")
-set(Qt_LIBRARIES "${Qt5Core_LIBRARIES};${Qt5Gui_LIBRARIES};${Qt5OpenGL_LIBRARIES};${Qt5Widgets_LIBRARIES}")
-set(Qt_LIBS
-    Qt5::Core
-    Qt5::Gui
-    Qt5::OpenGL
-    Qt5::Widgets
-    )
 add_definitions(-DWFlags=WindowFlags)
 
 find_package(OpenCV COMPONENTS core imgproc REQUIRED)
@@ -56,13 +54,6 @@ endif()
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
-  DEPENDS Qt
-  CATKIN_DEPENDS ${DEPENDENCIES}
-)
-
 # Fix conflict between Boost signals used by tf and QT signals used by mapviz
 add_definitions(-DQT_NO_KEYWORDS)
 
@@ -70,7 +61,6 @@ add_definitions(-DQT_NO_KEYWORDS)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(include)
 include_directories(SYSTEM
-  ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
@@ -86,9 +76,8 @@ set(UI_FILES
     ui/laserscan_config.ui
     ui/marker_config.ui
     ui/measuring_config.ui
-    ui/move_base_config.ui
+    # ui/move_base_config.ui
     ui/navsat_config.ui
-    ui/object_config.ui
     ui/occupancy_grid_config.ui
     ui/odometry_config.ui
     ui/path_config.ui
@@ -105,7 +94,7 @@ set(UI_FILES
 )
 
 set(SRC_FILES
-    src/attitude_indicator_plugin.cpp 
+    src/attitude_indicator_plugin.cpp
     src/canvas_click_filter.cpp
     src/coordinate_picker_plugin.cpp
     src/disparity_plugin.cpp
@@ -115,11 +104,10 @@ set(SRC_FILES
     src/grid_plugin.cpp
     src/image_plugin.cpp
     src/laserscan_plugin.cpp
-    src/marker_plugin.cpp 
+    src/marker_plugin.cpp
     src/measuring_plugin.cpp 
-    src/move_base_plugin.cpp
+    # src/move_base_plugin.cpp
     src/navsat_plugin.cpp
-    src/object_plugin.cpp
     src/occupancy_grid_plugin.cpp
     src/odometry_plugin.cpp 
     src/path_plugin.cpp
@@ -149,12 +137,10 @@ set(HEADER_FILES
     include/${PROJECT_NAME}/laserscan_plugin.h
     include/${PROJECT_NAME}/marker_plugin.h
     include/${PROJECT_NAME}/measuring_plugin.h
-    include/${PROJECT_NAME}/move_base_plugin.h
+    # include/${PROJECT_NAME}/move_base_plugin.h
     include/${PROJECT_NAME}/navsat_plugin.h
-    include/${PROJECT_NAME}/object_plugin.h
     include/${PROJECT_NAME}/occupancy_grid_plugin.h
     include/${PROJECT_NAME}/odometry_plugin.h
-    include/${PROJECT_NAME}/path_plugin.h
     include/${PROJECT_NAME}/path_plugin.h
     include/${PROJECT_NAME}/placeable_window_proxy.h
     include/${PROJECT_NAME}/plan_route_plugin.h
@@ -168,40 +154,70 @@ set(HEADER_FILES
     include/${PROJECT_NAME}/textured_marker_plugin.h
     include/${PROJECT_NAME}/tf_frame_plugin.h
 )
-
+    
 qt5_wrap_ui(UI_SRC_FILES ${UI_FILES})
 qt5_wrap_cpp(MOC_FILES ${HEADER_FILES})
 
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
     ${MOC_FILES}
     ${SRC_FILES}
     ${UI_SRC_FILES}
 )
-
+target_compile_definitions(${PROJECT_NAME} PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+ament_target_dependencies(${PROJECT_NAME}
+    ament_cmake
+    ament_index_cpp
+    cv_bridge
+    gps_msgs
+    image_transport
+    map_msgs
+    mapviz
+    marti_common_msgs
+    marti_nav_msgs
+    marti_sensor_msgs
+    marti_visualization_msgs
+    # move_base_msgs
+    nav_msgs
+    pluginlib
+    rclcpp
+    sensor_msgs
+    std_msgs
+    stereo_msgs
+    swri_image_util
+    swri_math_util
+    swri_route_util
+    swri_transform_util
+    tf2
+    tf2_geometry_msgs
+    tf2_ros
+    visualization_msgs
+)
 target_link_libraries(${PROJECT_NAME}
-    ${catkin_LIBRARIES}
+    Qt5::Core
+    Qt5::Gui
+    Qt5::OpenGL
+    Qt5::Widgets
     ${GLU_LIBRARY}
     ${GLUT_LIBRARY}
     ${OpenCV_LIBS}
-    ${Qt_LIBRARIES}
-)
-
-set_target_properties(${PROJECT_NAME} PROPERTIES
-  COMPILE_FLAGS "-std=c++11 -D__STDC_FORMAT_MACROS"
 )
 
 ### Install the plugins ###
+
 install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  DESTINATION include/${PROJECT_NAME}
+  FILES_MATCHING PATTERN "*.h"
 )
 
 install(TARGETS ${PROJECT_NAME}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
 )
 
-install(FILES ${PROJECT_NAME}.xml
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
+pluginlib_export_plugin_description_file(mapviz mapviz_plugins.xml)
 
+ament_export_dependencies(${RUNTIME_DEPS} Qt)
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME})
+ament_package()

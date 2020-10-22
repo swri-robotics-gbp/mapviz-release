@@ -2,19 +2,14 @@
 Changelog for package tile_map
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1.4.1 (2020-10-22)
+2.1.0 (2020-10-22)
 ------------------
 
-1.4.0 (2020-07-28)
+2.0.0 (2020-05-13)
 ------------------
-* Support ROS Noetic (`#696 <https://github.com/swri-robotics/mapviz/issues/696>`_)
-* Contributors: P. J. Reed
-
-1.3.0 (2020-05-13)
-------------------
-* Fix linking to OpenGL GLU library (`#675 <https://github.com/swri-robotics/mapviz/issues/675>`_)
+* Port mapviz to ROS 2 (`#672 <https://github.com/swri-robotics/mapviz/issues/672>`_)
 * Remove OpenGL warning (`#667 <https://github.com/swri-robotics/mapviz/issues/667>`_)
-* Contributors: Ben Wolsieffer, Daniel D'Souza
+* Contributors: Daniel D'Souza, P. J. Reed, Jacob Hassold, Kevin Nickels, Roger Strain, Matthew Bries
 
 1.2.0 (2019-09-04)
 ------------------
