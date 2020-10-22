@@ -1,0 +1,12 @@
+Source: ros-noetic-mapviz
+Section: misc
+Priority: optional
+Maintainer: Marc Alban <malban@swri.org>
+Build-Depends: debhelper (>= 9.0.0), freeglut3-dev, libglew-dev, libqt5opengl5-dev, libxi-dev, libxmu-dev, pkg-config, qt5-qmake, qtbase5-dev, ros-noetic-catkin, ros-noetic-cv-bridge, ros-noetic-image-transport, ros-noetic-marti-common-msgs, ros-noetic-message-generation, ros-noetic-pluginlib, ros-noetic-rosapi, ros-noetic-roscpp, ros-noetic-rqt-gui, ros-noetic-rqt-gui-cpp, ros-noetic-std-srvs, ros-noetic-swri-transform-util, ros-noetic-swri-yaml-util, ros-noetic-tf
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-noetic-mapviz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freeglut3-dev, libglew-dev, libqt5core5a, libqt5opengl5, libxi-dev, libxmu-dev, ros-noetic-cv-bridge, ros-noetic-image-transport, ros-noetic-marti-common-msgs, ros-noetic-message-runtime, ros-noetic-pluginlib, ros-noetic-rosapi, ros-noetic-roscpp, ros-noetic-rqt-gui, ros-noetic-rqt-gui-cpp, ros-noetic-std-srvs, ros-noetic-swri-transform-util, ros-noetic-swri-yaml-util, ros-noetic-tf
+Description: mapviz
