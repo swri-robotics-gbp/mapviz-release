@@ -76,6 +76,8 @@ namespace mapviz_plugins
   {
     RCLCPP_DEBUG(node_->get_logger(), "MarkerPlugin::ClearHistory()");
     markers_.clear();
+    marker_visible_.clear();
+    ui_.nsList->clear();
   }
 
   void MarkerPlugin::SelectTopic()
@@ -492,7 +494,7 @@ namespace mapviz_plugins
 
         glEnd();
       } else if (marker.display_type == visualization_msgs::msg::Marker::LINE_STRIP) {
-        glLineWidth(marker.scale_x);
+        glLineWidth(std::max(1.0f, marker.scale_x));
         glBegin(GL_LINE_STRIP);
 
         for (const auto &point : marker.points) {
@@ -505,7 +507,7 @@ namespace mapviz_plugins
 
         glEnd();
       } else if (marker.display_type == visualization_msgs::msg::Marker::LINE_LIST) {
-        glLineWidth(marker.scale_x);
+        glLineWidth(std::max(1.0f, marker.scale_x));
         glBegin(GL_LINES);
 
         for (const auto &point : marker.points) {
@@ -518,7 +520,7 @@ namespace mapviz_plugins
 
         glEnd();
       } else if (marker.display_type == visualization_msgs::msg::Marker::POINTS) {
-        glPointSize(marker.scale_x);
+        glPointSize(std::max(1.0f, marker.scale_x));
         glBegin(GL_POINTS);
 
         for (const auto &point : marker.points) {
