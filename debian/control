@@ -1,0 +1,12 @@
+Source: ros-noetic-mapviz-plugins
+Section: misc
+Priority: optional
+Maintainer: Marc Alban <malban@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libqt5opengl5-dev, qt5-qmake, qtbase5-dev, ros-noetic-actionlib, ros-noetic-catkin, ros-noetic-cv-bridge, ros-noetic-gps-common, ros-noetic-image-transport, ros-noetic-map-msgs, ros-noetic-mapviz, ros-noetic-marti-common-msgs, ros-noetic-marti-nav-msgs, ros-noetic-marti-sensor-msgs, ros-noetic-marti-visualization-msgs, ros-noetic-move-base-msgs, ros-noetic-nav-msgs, ros-noetic-pluginlib, ros-noetic-roscpp, ros-noetic-sensor-msgs, ros-noetic-std-msgs, ros-noetic-stereo-msgs, ros-noetic-swri-image-util, ros-noetic-swri-math-util, ros-noetic-swri-route-util, ros-noetic-swri-transform-util, ros-noetic-swri-yaml-util, ros-noetic-tf, ros-noetic-visualization-msgs
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-noetic-mapviz-plugins
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt5core5a, libqt5opengl5, ros-noetic-actionlib, ros-noetic-cv-bridge, ros-noetic-gps-common, ros-noetic-image-transport, ros-noetic-map-msgs, ros-noetic-mapviz, ros-noetic-marti-common-msgs, ros-noetic-marti-nav-msgs, ros-noetic-marti-sensor-msgs, ros-noetic-marti-visualization-msgs, ros-noetic-move-base-msgs, ros-noetic-nav-msgs, ros-noetic-pluginlib, ros-noetic-roscpp, ros-noetic-sensor-msgs, ros-noetic-std-msgs, ros-noetic-stereo-msgs, ros-noetic-swri-image-util, ros-noetic-swri-math-util, ros-noetic-swri-route-util, ros-noetic-swri-transform-util, ros-noetic-swri-yaml-util, ros-noetic-tf, ros-noetic-visualization-msgs
+Description: Common plugins for the Mapviz visualization tool
