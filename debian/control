@@ -1,0 +1,12 @@
+Source: ros-dashing-multires-image
+Section: misc
+Priority: optional
+Maintainer: P. J. Reed <preed@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libqt5core5a, libqt5opengl5-dev, qt5-qmake, ros-dashing-ament-cmake, ros-dashing-cv-bridge, ros-dashing-geometry-msgs, ros-dashing-gps-msgs, ros-dashing-mapviz, ros-dashing-pluginlib, ros-dashing-rclcpp, ros-dashing-swri-math-util, ros-dashing-swri-transform-util, ros-dashing-tf2, ros-dashing-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-dashing-multires-image
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt5core5a, libqt5opengl5, ros-dashing-cv-bridge, ros-dashing-geometry-msgs, ros-dashing-gps-msgs, ros-dashing-mapviz, ros-dashing-pluginlib, ros-dashing-rclcpp, ros-dashing-rclpy, ros-dashing-swri-math-util, ros-dashing-swri-transform-util, ros-dashing-tf2, ros-dashing-ros-workspace
+Description: multires_image
