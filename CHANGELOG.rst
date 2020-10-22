@@ -2,6 +2,9 @@
 Changelog for package tile_map
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.4.1 (2020-10-22)
+------------------
+
 1.4.0 (2020-07-28)
 ------------------
 * Support ROS Noetic (`#696 <https://github.com/swri-robotics/mapviz/issues/696>`_)
