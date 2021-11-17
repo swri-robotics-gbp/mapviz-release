@@ -1,0 +1,12 @@
+Source: ros-galactic-mapviz-plugins
+Section: misc
+Priority: optional
+Maintainer: P. J. Reed <preed@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libqt5core5a, libqt5opengl5-dev, qt5-qmake, ros-galactic-ament-cmake, ros-galactic-ament-index-cpp, ros-galactic-cv-bridge, ros-galactic-gps-msgs, ros-galactic-image-transport, ros-galactic-map-msgs, ros-galactic-mapviz, ros-galactic-marti-common-msgs, ros-galactic-marti-nav-msgs, ros-galactic-marti-sensor-msgs, ros-galactic-marti-visualization-msgs, ros-galactic-nav-msgs, ros-galactic-pluginlib, ros-galactic-rclcpp, ros-galactic-rclcpp-action, ros-galactic-sensor-msgs, ros-galactic-std-msgs, ros-galactic-stereo-msgs, ros-galactic-swri-image-util, ros-galactic-swri-math-util, ros-galactic-swri-route-util, ros-galactic-swri-transform-util, ros-galactic-tf2, ros-galactic-visualization-msgs, ros-galactic-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-galactic-mapviz-plugins
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt5core5a, libqt5opengl5, ros-galactic-ament-index-cpp, ros-galactic-cv-bridge, ros-galactic-gps-msgs, ros-galactic-image-transport, ros-galactic-map-msgs, ros-galactic-mapviz, ros-galactic-marti-common-msgs, ros-galactic-marti-nav-msgs, ros-galactic-marti-sensor-msgs, ros-galactic-marti-visualization-msgs, ros-galactic-nav-msgs, ros-galactic-pluginlib, ros-galactic-rclcpp, ros-galactic-rclcpp-action, ros-galactic-sensor-msgs, ros-galactic-std-msgs, ros-galactic-stereo-msgs, ros-galactic-swri-image-util, ros-galactic-swri-math-util, ros-galactic-swri-route-util, ros-galactic-swri-transform-util, ros-galactic-tf2, ros-galactic-visualization-msgs, ros-galactic-ros-workspace
+Description: Common plugins for the Mapviz visualization tool
