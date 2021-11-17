@@ -1,0 +1,12 @@
+Source: ros-galactic-mapviz-interfaces
+Section: misc
+Priority: optional
+Maintainer: P. J. Reed <preed@swri.org>
+Build-Depends: debhelper (>= 9.0.0), ros-galactic-builtin-interfaces, ros-galactic-marti-common-msgs, ros-galactic-rosidl-default-generators, ros-galactic-ros-workspace, ros-galactic-rosidl-typesupport-fastrtps-c, ros-galactic-rosidl-typesupport-fastrtps-cpp
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-galactic-mapviz-interfaces
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-galactic-rosidl-default-runtime, ros-galactic-ros-workspace
+Description: ROS interfaces used by Mapviz
