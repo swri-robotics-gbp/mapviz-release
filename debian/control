@@ -1,0 +1,12 @@
+Source: ros-galactic-mapviz
+Section: misc
+Priority: optional
+Maintainer: P. J. Reed <preed@swri.org>
+Build-Depends: debhelper (>= 9.0.0), freeglut3-dev, libglew-dev, libqt5core5a, libqt5opengl5-dev, libxi-dev, libxmu-dev, libyaml-cpp-dev, pkg-config, qt5-qmake, ros-galactic-ament-cmake, ros-galactic-cv-bridge, ros-galactic-geometry-msgs, ros-galactic-image-transport, ros-galactic-mapviz-interfaces, ros-galactic-marti-common-msgs, ros-galactic-pluginlib, ros-galactic-rclcpp, ros-galactic-rqt-gui, ros-galactic-rqt-gui-cpp, ros-galactic-std-srvs, ros-galactic-swri-math-util, ros-galactic-swri-transform-util, ros-galactic-tf2, ros-galactic-tf2-geometry-msgs, ros-galactic-tf2-ros, ros-galactic-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-galactic-mapviz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freeglut3-dev, libglew-dev, libqt5core5a, libqt5opengl5, libxi-dev, libxmu-dev, libyaml-cpp-dev, ros-galactic-cv-bridge, ros-galactic-geometry-msgs, ros-galactic-image-transport, ros-galactic-launch-xml, ros-galactic-mapviz-interfaces, ros-galactic-marti-common-msgs, ros-galactic-pluginlib, ros-galactic-rclcpp, ros-galactic-rqt-gui, ros-galactic-rqt-gui-cpp, ros-galactic-std-srvs, ros-galactic-swri-math-util, ros-galactic-swri-transform-util, ros-galactic-tf2, ros-galactic-tf2-geometry-msgs, ros-galactic-tf2-ros, ros-galactic-ros-workspace
+Description: mapviz
