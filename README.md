@@ -1,3 +1,31 @@
+## mapviz (galactic) - 2.2.0-3
+
+The packages in the `mapviz` repository were released into the `galactic` distro by running `/usr/bin/bloom-release --edit --rosdistro galactic --track galactic mapviz` on `Tue, 21 Dec 2021 16:30:42 -0000`
+
+These packages were released:
+- `mapviz`
+- `mapviz_interfaces`
+- `mapviz_plugins`
+- `multires_image`
+- `tile_map`
+
+Version of package(s) in repository `mapviz`:
+
+- upstream repository: https://github.com/swri-robotics/mapviz.git
+- release repository: unknown
+- rosdistro version: `null`
+- old version: `2.2.0-2`
+- new version: `2.2.0-3`
+
+Versions of tools used:
+
+- bloom version: `0.10.7`
+- catkin_pkg version: `0.4.24`
+- rosdep version: `0.21.0`
+- rosdistro version: `0.8.3`
+- vcstools version: `0.1.42`
+
+
 ## mapviz (galactic) - 2.2.0-2
 
 The packages in the `mapviz` repository were released into the `galactic` distro by running `/usr/bin/bloom-release --edit --rosdistro galactic --track galactic mapviz` on `Tue, 21 Dec 2021 16:25:44 -0000`
