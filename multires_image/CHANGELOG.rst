@@ -2,16 +2,18 @@
 Changelog for package multires_image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.1.0 (2020-10-22)
+1.4.1 (2020-10-22)
 ------------------
-* ROS Foxy support (`#695 <https://github.com/swri-robotics/mapviz/issues/695>`_)
+
+1.4.0 (2020-07-28)
+------------------
+* Support ROS Noetic (`#696 <https://github.com/swri-robotics/mapviz/issues/696>`_)
 * Contributors: P. J. Reed
 
-2.0.0 (2020-05-13)
+1.3.0 (2020-05-13)
 ------------------
-* Port mapviz to ROS 2 (`#672 <https://github.com/swri-robotics/mapviz/issues/672>`_)
 * Remove OpenGL warning (`#667 <https://github.com/swri-robotics/mapviz/issues/667>`_)
-* Contributors: Daniel D'Souza, P. J. Reed, Jacob Hassold, Kevin Nickels, Roger Strain
+* Contributors: Daniel D'Souza
 
 1.2.0 (2019-09-04)
 ------------------
