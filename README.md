@@ -1,3 +1,30 @@
+## mapviz (noetic) - 1.4.3-1
+
+The packages in the `mapviz` repository were released into the `noetic` distro by running `/usr/bin/bloom-release --edit --rosdistro noetic mapviz` on `Fri, 06 Sep 2024 21:41:07 -0000`
+
+These packages were released:
+- `mapviz`
+- `mapviz_plugins`
+- `multires_image`
+- `tile_map`
+
+Version of package(s) in repository `mapviz`:
+
+- upstream repository: https://github.com/swri-robotics/mapviz.git
+- release repository: https://github.com/swri-robotics-gbp/mapviz-release.git
+- rosdistro version: `1.4.2-1`
+- old version: `1.4.2-1`
+- new version: `1.4.3-1`
+
+Versions of tools used:
+
+- bloom version: `0.12.0`
+- catkin_pkg version: `1.0.0`
+- rosdep version: `0.25.1`
+- rosdistro version: `0.9.1`
+- vcstools version: `0.1.42`
+
+
 ## mapviz (noetic) - 1.4.2-1
 
 The packages in the `mapviz` repository were released into the `noetic` distro by running `/usr/local/bin/bloom-release --edit --rosdistro noetic --track noetic mapviz` on `Tue, 13 Dec 2022 19:53:37 -0000`
