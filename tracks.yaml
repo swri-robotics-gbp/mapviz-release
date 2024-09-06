@@ -248,11 +248,11 @@ tracks:
     patches: null
     release_inc: '1'
     release_repo_url: git@github.com:swri-robotics-gbp/mapviz-release.git
-    release_tag: :{version}
+    release_tag: 1.4.3
     ros_distro: noetic
     vcs_type: git
     vcs_uri: https://github.com/swri-robotics/mapviz.git
-    version: :{auto}
+    version: 1.4.3
   rolling:
     actions:
     - bloom-export-upstream :{vcs_local_uri} :{vcs_type} --tag :{release_tag} --display-uri
